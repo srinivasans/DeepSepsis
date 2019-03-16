@@ -56,7 +56,7 @@ if __name__ == '__main__':
     checkdir=args.checkpoint_dir
     logdir=args.log_dir
     base=args.data_path
-    data_paths=["30_8_128_64_0.001_400_True_True_True_0.15_0.5"]
+    data_paths=["30_8_128_64_0.001_400_True_True_False_0.15_0.5"]
     max_auc = 0.0
     for d in data_paths:
         args.data_path=os.path.join(base,d)
