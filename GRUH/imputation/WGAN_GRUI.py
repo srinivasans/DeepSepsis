@@ -1,5 +1,7 @@
 #-*- coding: utf-8 -*-
 from __future__ import division
+import sys
+sys.path.append("..")
 import os
 import math
 import time
@@ -54,7 +56,7 @@ class WGAN(object):
         # train
         self.learning_rate = args.lr
         self.beta1 = args.beta1
-        if "1.5" in tf.__version__ or "1.7" in tf.__version__ :
+        if "1.13" in tf.__version__ or "1.7" in tf.__version__ :
             self.grud_cell_d = mygru_cell.MyGRUCell15(self.n_hidden_units)
             self.grud_cell_g = mygru_cell.MyGRUCell15(self.n_hidden_units)
         elif "1.4" in tf.__version__:

@@ -15,7 +15,7 @@ from tensorflow.python.ops import math_ops
 from tensorflow.python.ops import variable_scope as vs
 from tensorflow.contrib.rnn import RNNCell
 import tensorflow as tf
-if "1.5" in tf.__version__ or "1.7" in tf.__version__:
+if "1.13" in tf.__version__ or "1.7" in tf.__version__:
     from tensorflow.python.ops.rnn_cell_impl import LayerRNNCell
     from tensorflow.python.layers import base as base_layer
     from tensorflow.python.ops import nn_ops

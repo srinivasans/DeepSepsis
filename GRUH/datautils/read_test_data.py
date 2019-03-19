@@ -51,11 +51,11 @@ class ReadSepsisData():
                 if count > 0:
                     data = [float(pt) for pt in line.strip().split('|')]
                     for i in range(0, self.nFeatures):
-                        if not np.isnan(data[i]) or data[i] == 0:
+                        if not np.isnan(data[i]) and data[i] == 0:
                             mean[i]+=data[i]
                             meancount[i]+=1
                         if np.isnan(data[i]):
-                            data[i] = 0
+                            data[i] = 0.0
                     # Assuming the features are the first set of values in the dataset ** IMPORTANT **
                     totalData.append(data[0:self.nFeatures]) 
                     t_times.append(float(data[self.dic['ICULOS']]))
