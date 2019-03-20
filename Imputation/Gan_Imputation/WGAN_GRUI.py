@@ -567,7 +567,7 @@ class WGAN(object):
         batchid=1
         impute_tune_time=1
         counter=1
-        for data_x,data_y,data_mean,data_m,data_deltaPre,data_x_lengths,data_lastvalues,_,imputed_deltapre,imputed_m,deltaSub,subvalues,imputed_deltasub in self.datasets.nextBatch():
+        for data_x,data_y,data_mean,data_m,data_deltaPre,data_x_lengths,data_lastvalues,files,imputed_deltapre,imputed_m,deltaSub,subvalues,imputed_deltasub in self.datasets.nextBatch():
             #self.z_need_tune=tf.assign(self.z_need_tune,tf.random_normal([self.batch_size,self.z_dim]))
             tf.variables_initializer([self.z_need_tune]).run()
             for i in range(0,self.impute_iter):
@@ -591,7 +591,7 @@ class WGAN(object):
                           % (batchid, impute_tune_time, self.impute_iter, time.time() - start_time, impute_loss))
                     self.writer.add_summary(summary_str, counter/10)
             #imputed=tf.multiply((1-self.m),impute_out)+data_x
-            self.save_imputation(imputed,batchid,data_x_lengths,data_deltaPre,data_y,isTrain)
+            self.save_imputation(imputed,batchid,data_x_lengths,data_deltaPre,data_y,isTrain, files)
             batchid+=1
             impute_tune_time=1
     @property
@@ -606,7 +606,7 @@ class WGAN(object):
             )
 
 
-    def save_imputation(self,impute_out,batchid,data_x_lengths,data_times,data_y,isTrain):
+    def save_imputation(self,impute_out,batchid,data_x_lengths,data_times,data_y,isTrain,files):
         #填充后的数据全是n_steps长度！，但只有data_x_lengths才是可用的
         if isTrain:
             imputation_dir="imputation_train_results"
@@ -629,13 +629,15 @@ class WGAN(object):
             resultFile.writelines(str(length)+",")
         resultFile.writelines("\r\n")
         # impute_out:ndarray
+        ser = 0
         for oneSeries in impute_out:
-            resultFile.writelines("begin\r\n")
+            resultFile.writelines("begin {}\r\n".format(files[ser]))
             for oneClass in oneSeries:
                 for i in oneClass.flat:
                     resultFile.writelines(str(i)+",")
                 resultFile.writelines("\r\n")
-            resultFile.writelines("end\r\n")
+            resultFile.writelines("end\r\n".format(files[ser]))
+            ser += 1
         resultFile.close()
 
         #write data_times data_times:list
@@ -643,13 +645,15 @@ class WGAN(object):
                                      self.model_name,\
                                      self.model_dir,\
                                      "batch"+str(batchid)+"delta"),'w')
+        ser = 0
         for oneSeries in data_times:
-            resultFile.writelines("begin\r\n")
+            resultFile.writelines("begin\r\n".format(files[ser]))
             for oneClass in oneSeries:
                 for i in oneClass:
                     resultFile.writelines(str(i)+",")
                 resultFile.writelines("\r\n")
-            resultFile.writelines("end\r\n")
+            resultFile.writelines("end\r\n".format(files[ser]))
+            ser += 1
         resultFile.close()
 
         #write y
@@ -657,6 +661,7 @@ class WGAN(object):
                                      self.model_name,\
                                      self.model_dir,\
                                      "batch"+str(batchid)+"y"),'w')
+
         for oneSeries in data_y:
             #resultFile.writelines("begin\r\n")
             for oneClass in oneSeries:

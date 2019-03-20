@@ -31,6 +31,17 @@ class ReadPhysionetSepsisData():
         self.fileNames = fileNames
         labelFile.close()
 
+        # dic = {'time': -1, 'HR': 0, 'O2Sat': 1, 'Temp': 2, 'SBP': 3, 'MAP': 4, 'DBP': 5,
+        #        'Resp': 6, 'EtCO2': 7, 'BaseExcess': 8, 'HCO3': 9, 'FiO2': 10,
+        #        'pH': 11, 'PaCO2': 12, 'SaO2': 13, 'AST': 14, 'BUN': 15,
+        #        'Alkalinephos': 16, 'Calcium': 17, 'Chloride': 18, 'Creatinine': 19,
+        #        'Bilirubin_direct': 20, 'Glucose': 21, 'Lactate': 22, 'Magnesium': 23,
+        #        'Phosphate': 24, 'Potassium': 25, 'Bilirubin_total': 26,
+        #        'TroponinI': 27, 'Hct': 28, 'Hgb': 29, 'PTT': 30, 'WBC': 31,
+        #        'Fibrinogen': 32, 'Platelets': 33, 'Age': 34, 'Gender': 35,
+        #        'Unit1': 36, 'Unit2': 37, 'HospAdmTime': 38, 'ICULOS': 39,
+        #        'SepsisLabel': 40}
+
         dic = {'time': -1, 'HR': 0, 'O2Sat': 1, 'Temp': 2, 'SBP': 3, 'MAP': 4, 'DBP': 5,
                'Resp': 6, 'EtCO2': 7, 'BaseExcess': 8, 'HCO3': 9, 'FiO2': 10,
                'pH': 11, 'PaCO2': 12, 'SaO2': 13, 'AST': 14, 'BUN': 15,
@@ -38,9 +49,7 @@ class ReadPhysionetSepsisData():
                'Bilirubin_direct': 20, 'Glucose': 21, 'Lactate': 22, 'Magnesium': 23,
                'Phosphate': 24, 'Potassium': 25, 'Bilirubin_total': 26,
                'TroponinI': 27, 'Hct': 28, 'Hgb': 29, 'PTT': 30, 'WBC': 31,
-               'Fibrinogen': 32, 'Platelets': 33, 'Age': 34, 'Gender': 35,
-               'Unit1': 36, 'Unit2': 37, 'HospAdmTime': 38, 'ICULOS': 39,
-               'SepsisLabel': 40}
+               'Fibrinogen': 32, 'Platelets': 33, 'SepsisLabel': 40}
 
         self.dic = dic
         mean = [0.0] * (len(dic) - 1)

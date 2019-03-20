@@ -45,10 +45,11 @@ for subdir, dirs, files in os.walk(folder):
         other_features = list(df)[0:-7]
 
         time = 0
-        time_to_save = "00:00"
 
-        for demographic_feature in demographic_features:
-            to_save_lst.append([time_to_save, demographic_feature, df[demographic_feature].tolist()[0]])
+        # time_to_save = "00:00"
+        #
+        # for demographic_feature in demographic_features:
+        #     to_save_lst.append([time_to_save, demographic_feature, df[demographic_feature].tolist()[0]])
 
         df.drop(demographic_features + ['SepsisLabel'], axis=1, inplace=True)
 
