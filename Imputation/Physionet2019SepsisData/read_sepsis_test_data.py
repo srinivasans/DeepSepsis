@@ -79,73 +79,73 @@ class ReadPhysionetSepsisData():
 
                     # 0 is missing value,orignal gender is 0/1 ,after preprocessing
                     # gender is 0/1/2(missing,female, male)
-                    if timestamp == "00:00":
-                        if feature == 'Age':
-                            age = "0" if value == "NaN" else value
-                            # calcuate mean
-                            if age != "0":
-                                mean[self.dic[feature]] += float(age)
-                                meancount[self.dic[feature]] += 1
-                        if feature == 'Gender':
-                            if value == "NaN":
-                                gender = "0"
-                            if value == "0":
-                                gender = "1"
-                            if value == "1":
-                                gender = "2"
-                            # calcuate mean
-                            if gender != "0":
-                                mean[self.dic[feature]] += float(gender)
-                                meancount[self.dic[feature]] += 1
-                        if feature == 'Unit1':
-                            unit1 = "0" if value == "NaN" else value
-                            # calcuate mean
-                            if unit1 != "0":
-                                mean[self.dic[feature]] += float(unit1)
-                                meancount[self.dic[feature]] += 1
-                        if feature == 'Unit2':
-                            unit2 = "0" if value == "NaN" else value
-                            # calcuate mean
-                            if unit2 != "0":
-                                mean[self.dic[feature]] += float(unit2)
-                                meancount[self.dic[feature]] += 1
-                        if feature == 'HospAdmTime':
-                            admtime = "0" if value == "NaN" else value
-                            # calcuate mean
-                            if admtime != "0":
-                                mean[self.dic[feature]] += float(admtime)
-                                meancount[self.dic[feature]] += 1
-                        if feature == 'ICULOS':
-                            iculos = "0" if value == "NaN" else value
-                            # calcuate mean
-                            if iculos != "0":
-                                mean[self.dic[feature]] += float(iculos)
-                                meancount[self.dic[feature]] += 1
+                    # if timestamp == "00:00":
+                    #     if feature == 'Age':
+                    #         age = "0" if value == "NaN" else value
+                    #         # calcuate mean
+                    #         if age != "0":
+                    #             mean[self.dic[feature]] += float(age)
+                    #             meancount[self.dic[feature]] += 1
+                    #     if feature == 'Gender':
+                    #         if value == "NaN":
+                    #             gender = "0"
+                    #         if value == "0":
+                    #             gender = "1"
+                    #         if value == "1":
+                    #             gender = "2"
+                    #         # calcuate mean
+                    #         if gender != "0":
+                    #             mean[self.dic[feature]] += float(gender)
+                    #             meancount[self.dic[feature]] += 1
+                    #     if feature == 'Unit1':
+                    #         unit1 = "0" if value == "NaN" else value
+                    #         # calcuate mean
+                    #         if unit1 != "0":
+                    #             mean[self.dic[feature]] += float(unit1)
+                    #             meancount[self.dic[feature]] += 1
+                    #     if feature == 'Unit2':
+                    #         unit2 = "0" if value == "NaN" else value
+                    #         # calcuate mean
+                    #         if unit2 != "0":
+                    #             mean[self.dic[feature]] += float(unit2)
+                    #             meancount[self.dic[feature]] += 1
+                    #     if feature == 'HospAdmTime':
+                    #         admtime = "0" if value == "NaN" else value
+                    #         # calcuate mean
+                    #         if admtime != "0":
+                    #             mean[self.dic[feature]] += float(admtime)
+                    #             meancount[self.dic[feature]] += 1
+                    #     if feature == 'ICULOS':
+                    #         iculos = "0" if value == "NaN" else value
+                    #         # calcuate mean
+                    #         if iculos != "0":
+                    #             mean[self.dic[feature]] += float(iculos)
+                    #             meancount[self.dic[feature]] += 1
 
+                    # else:
+                    if timestamp != lastTime:
+                        data = [0.0] * (len(dic) - 1)
+                        hourandminute = timestamp.split(":")
+                        t_times.append(float(hourandminute[0]) * 60 + float(
+                            hourandminute[1]))
+
+                        data[0] = float(age)
+                        data[1] = float(gender)
+                        data[2] = float(unit1)
+                        data[3] = float(unit2)
+                        data[4] = float(admtime)
+                        data[5] = float(iculos)
+
+                        data[self.dic[feature]] = float(value)
+                        mean[self.dic[feature]] += float(value)
+                        meancount[self.dic[feature]] += 1
+
+                        totalData.append(data)
                     else:
-                        if timestamp != lastTime:
-                            data = [0.0] * (len(dic) - 1)
-                            hourandminute = timestamp.split(":")
-                            t_times.append(float(hourandminute[0]) * 60 + float(
-                                hourandminute[1]))
 
-                            data[0] = float(age)
-                            data[1] = float(gender)
-                            data[2] = float(unit1)
-                            data[3] = float(unit2)
-                            data[4] = float(admtime)
-                            data[5] = float(iculos)
-
-                            data[self.dic[feature]] = float(value)
-                            mean[self.dic[feature]] += float(value)
-                            meancount[self.dic[feature]] += 1
-
-                            totalData.append(data)
-                        else:
-
-                            totalData[-1][self.dic[feature]] = float(value)
-                            mean[self.dic[feature]] += float(value)
-                            meancount[self.dic[feature]] += 1
+                        totalData[-1][self.dic[feature]] = float(value)
+                        mean[self.dic[feature]] += float(value)
+                        meancount[self.dic[feature]] += 1
 
                     lastTime = timestamp
                 count += 1
