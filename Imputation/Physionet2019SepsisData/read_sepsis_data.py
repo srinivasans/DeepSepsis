@@ -51,7 +51,11 @@ class ReadPhysionetSepsisData():
                'TroponinI': 27, 'Hct': 28, 'Hgb': 29, 'PTT': 30, 'WBC': 31,
                'Fibrinogen': 32, 'Platelets': 33, 'SepsisLabel': 40}
 
+
+        print(len(dic))
+
         self.dic = dic
+
         mean = [0.0] * (len(dic) - 1)
         meancount = [0] * (len(dic) - 1)
         x = []
