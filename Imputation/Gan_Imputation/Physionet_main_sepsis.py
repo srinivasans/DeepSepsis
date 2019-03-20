@@ -50,7 +50,7 @@ def main():
     parser.add_argument('--isNormal',type=int,default=1)
     #0 false 1 true
     parser.add_argument('--isBatch-normal',type=int,default=1)
-    parser.add_argument('--isSlicing',type=int,default=1)
+    parser.add_argument('--isSlicing',type=int,default=0)
     parser.add_argument('--disc-iters',type=int,default=8)
     args = parser.parse_args()
 

@@ -15,10 +15,16 @@ class ReadPhysionetSepsisData():
                 words = line.strip().split(',')
                 if os.path.isfile(os.path.join(dataPath, words[0]+".txt")):
                     fileNames.append(words[0]+".txt" )
-                    if words[-1]=="0":
-                        labels.append([1,0])
-                    if words[-1]=="1":
-                        labels.append([0,1])
+                    words = words[1:]
+                    labels_per_patient = []
+
+                    for lab in words:
+                        if lab == "0":
+                            labels_per_patient.append([1, 0])
+                        if lab == "1":
+                            labels_per_patient.append([0, 1])
+
+                    labels.append(labels_per_patient)
             line_num=line_num+1
         self.dataPath = dataPath
         self.fileNames = fileNames

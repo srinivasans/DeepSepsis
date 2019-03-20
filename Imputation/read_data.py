@@ -32,13 +32,13 @@ for subdir, dirs, files in os.walk(folder):
 
         df = pd.DataFrame(preprocessed[1:-1], columns=preprocessed[0])
 
-        label = df['SepsisLabel'].tolist()[-1]
+        labels = df['SepsisLabel'].tolist()
 
         if train_test_split % 4 == 0:
-            test_labels.append([file[0:-4], label])
+            test_labels.append([file[0:-4]] + labels)
             dir_to_save = test_dir
         else:
-            train_labels.append([file[0:-4], label])
+            train_labels.append([file[0:-4]] + labels)
             dir_to_save = train_dir
 
         demographic_features = list(df)[-7:-1]
@@ -71,5 +71,5 @@ for subdir, dirs, files in os.walk(folder):
         pd.DataFrame(to_save_lst, columns=['Time', 'Parameter',
             'Value']).to_csv('{}{}.txt'.format(dir_to_save,file[0:-4]), index=False)
 
-    pd.DataFrame(train_labels, columns=['PID', 'SepsisLabel']).to_csv('{}list.txt'.format(train_dir), index=False)
-    pd.DataFrame(test_labels, columns=['PID', 'SepsisLabel']).to_csv('{}list.txt'.format(test_dir), index=False)
+    pd.DataFrame(train_labels).to_csv('{}list.txt'.format(train_dir), index=False)
+    pd.DataFrame(test_labels).to_csv('{}list.txt'.format(test_dir), index=False)

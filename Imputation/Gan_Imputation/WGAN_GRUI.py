@@ -54,7 +54,7 @@ class WGAN(object):
         # train
         self.learning_rate = args.lr
         self.beta1 = args.beta1
-        if "1.5" in tf.__version__ or "1.7" in tf.__version__ :
+        if "1.5" in tf.__version__ or "1.7" in tf.__version__ or "1.12" in tf.__version__:
             self.grud_cell_d = mygru_cell.MyGRUCell15(self.n_hidden_units)
             self.grud_cell_g = mygru_cell.MyGRUCell15(self.n_hidden_units)
         elif "1.4" in tf.__version__:
@@ -482,22 +482,11 @@ class WGAN(object):
 
                 batch_z = np.random.standard_normal(size=(self.batch_size, self.z_dim))
 
-                # print("batch_z: " + str(batch_z))
-                # print("data_x: " + str(data_x))
-                # print("data_m: " + str(data_m))
-                # print("data_deltaPre: " + str(data_deltaPre))
-                # print("data_mean: " + str(data_mean))
-                # print("max data_x_lengths: " + str(max(data_x_lengths)))
-                # print("data_lastvalues: " + str(data_lastvalues))
-                # print("deltaSub: " + str(deltaSub))
-                # print("subvalues: " + str(subvalues))
-                # print("imputed_m: " + str(imputed_m))
-                # print("imputed_deltapre: " + str(imputed_deltapre))
-                # print("imputed_deltasub: " + str(imputed_deltasub))
-
-
                 #_ = self.sess.run(self.clip_D)
                 _ = self.sess.run(self.clip_all_vals)
+
+                print(self.clip_all_vals)
+
                 _, summary_str, d_loss = self.sess.run([self.d_optim, self.d_sum, self.d_loss],
                                                feed_dict={self.z: batch_z,
                                                           self.x: data_x,

@@ -15,17 +15,17 @@ from tensorflow.python.ops import math_ops
 from tensorflow.python.ops import variable_scope as vs
 from tensorflow.contrib.rnn import RNNCell
 import tensorflow as tf
-if "1.5" in tf.__version__ or "1.7" in tf.__version__:
+if "1.5" in tf.__version__ or "1.7" in tf.__version__ or "1.12" in tf.__version__:
     from tensorflow.python.ops.rnn_cell_impl import LayerRNNCell
     from tensorflow.python.layers import base as base_layer
     from tensorflow.python.ops import nn_ops
     _BIAS_VARIABLE_NAME = "bias"
     _WEIGHTS_VARIABLE_NAME = "kernel"
-    
+
     class MyGRUCell15(LayerRNNCell):
     #todo: 直接改就行了，已经试验过了，不影响dynamic_rnn的调用
       """Gated Recurrent Unit cell (cf. http://arxiv.org/abs/1406.1078).
-    
+
       Args:
         num_units: int, The number of units in the GRU cell.
         activation: Nonlinearity to use.  Default: `tanh`.
@@ -47,28 +47,28 @@ if "1.5" in tf.__version__ or "1.7" in tf.__version__:
                    bias_initializer=None,
                    name=None):
         super(MyGRUCell15, self).__init__(_reuse=reuse, name=name)
-    
+
         # Inputs must be 2-dimensional.
         self.input_spec = base_layer.InputSpec(ndim=2)
-    
+
         self._num_units = num_units
         self._activation = activation or math_ops.tanh
         self._kernel_initializer = kernel_initializer
         self._bias_initializer = bias_initializer
-    
+
       @property
       def state_size(self):
         return self._num_units
-    
+
       @property
       def output_size(self):
         return self._num_units
-    
+
       def build(self, inputs_shape):
         if inputs_shape[1].value is None:
           raise ValueError("Expected inputs.shape[-1] to be known, saw shape: %s"
                            % inputs_shape)
-    
+
         input_depth = inputs_shape[1].value-self._num_units
         self._gate_kernel = self.add_variable(
             "gates/%s" % _WEIGHTS_VARIABLE_NAME,
@@ -92,9 +92,9 @@ if "1.5" in tf.__version__ or "1.7" in tf.__version__:
                 self._bias_initializer
                 if self._bias_initializer is not None
                 else init_ops.zeros_initializer(dtype=self.dtype)))
-    
+
         self.built = True
-    
+
       def call(self, inputs, state):
         """Gated recurrent unit (GRU) with nunits cells."""
         totalLength=inputs.get_shape().as_list()[1]
@@ -102,20 +102,20 @@ if "1.5" in tf.__version__ or "1.7" in tf.__version__:
         rth=inputs[:,totalLength-self._num_units:]
         inputs=inputs_
         state=math_ops.multiply(rth,state)
-        
+
         gate_inputs = math_ops.matmul(
             array_ops.concat([inputs, state], 1), self._gate_kernel)
         gate_inputs = nn_ops.bias_add(gate_inputs, self._gate_bias)
-    
+
         value = math_ops.sigmoid(gate_inputs)
         r, u = array_ops.split(value=value, num_or_size_splits=2, axis=1)
-    
+
         r_state = r * state
-    
+
         candidate = math_ops.matmul(
             array_ops.concat([inputs, r_state], 1), self._candidate_kernel)
         candidate = nn_ops.bias_add(candidate, self._candidate_bias)
-    
+
         c = self._activation(candidate)
         new_h = u * state + (1 - u) * c
         return new_h, new_h
@@ -168,7 +168,7 @@ class MyGRUCell4(RNNCell):
     """Gated recurrent unit (GRU) with nunits cells."""
     # inputs = realinputs + m +rt
     # rt's length is self._num_units
-    # state = rt * older state 
+    # state = rt * older state
     # input = first 2 part
     totalLength=inputs.get_shape().as_list()[1]
     inputs_=inputs[:,0:totalLength-self._num_units]
@@ -244,7 +244,7 @@ class MyGRUCell2(RNNCell):
     """Gated recurrent unit (GRU) with nunits cells."""
     # inputs = realinputs + m +rt
     # rt's length is self._num_units
-    # state = rt * older state 
+    # state = rt * older state
     # input = first 2 part
     totalLength=inputs.get_shape().as_list()[1]
     inputs_=inputs[:,0:totalLength-self._num_units]
