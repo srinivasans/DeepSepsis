@@ -37,7 +37,7 @@ def main():
     parser.add_argument('--lr', type=float, default=0.001)
     #lr 0.001的时候 pretrain_loss降的很快，4个epoch就行了
     parser.add_argument('--epoch', type=int, default=30)
-    parser.add_argument('--n-inputs', type=int, default=41)
+    parser.add_argument('--n-inputs', type=int, default=35)
     parser.add_argument('--n-hidden-units', type=int, default=64)
     parser.add_argument('--n-classes', type=int, default=2)
     parser.add_argument('--z-dim', type=int, default=64)
