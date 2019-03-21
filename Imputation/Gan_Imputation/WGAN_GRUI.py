@@ -485,8 +485,6 @@ class WGAN(object):
                 #_ = self.sess.run(self.clip_D)
                 _ = self.sess.run(self.clip_all_vals)
 
-                print(self.clip_all_vals)
-
                 _, summary_str, d_loss = self.sess.run([self.d_optim, self.d_sum, self.d_loss],
                                                feed_dict={self.z: batch_z,
                                                           self.x: data_x,
