@@ -174,7 +174,7 @@ class ReadSepsisData():
         self.deltaSub=deltaSub
         self.subvalues=subvalues
         self.x_lengths=x_lengths
-        self.maxLength=max(x_lengths)
+        self.maxLength=maxLength
         print("max_length is : "+str(self.maxLength))
 
     def normalization(self,isNormal):
