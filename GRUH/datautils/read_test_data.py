@@ -220,19 +220,19 @@ class ReadSepsisData():
                 jj=j-(i-1)*self.batchSize
                 #times.append(self.times[j])
                 while len(x[jj])<self.maxLength:
-                    t1=[0.0]*(len(self.dic)-1)
+                    t1=[0.0]*(self.nFeatures)
                     x[jj].append(t1)
                     y[jj].append(y[jj][len(y[jj])-1])
                     #times[jj].append(0.0)
-                    t2=[0]*(len(self.dic)-1)
+                    t2=[0]*(self.nFeatures)
                     m[jj].append(t2)
-                    t3=[0.0]*(len(self.dic)-1)
+                    t3=[0.0]*(self.nFeatures)
                     deltaPre[jj].append(t3)
-                    t4=[0.0]*(len(self.dic)-1)
+                    t4=[0.0]*(self.nFeatures)
                     lastvalues[jj].append(t4)
-                    t5=[0.0]*(len(self.dic)-1)
+                    t5=[0.0]*(self.nFeatures)
                     deltaSub[jj].append(t5)
-                    t6=[0.0]*(len(self.dic)-1)
+                    t6=[0.0]*(self.nFeatures)
                     subvalues[jj].append(t6)
             for j in range((i-1)*self.batchSize,i*self.batchSize):
                 one_imputed_deltapre=[]
@@ -240,35 +240,35 @@ class ReadSepsisData():
                 one_G_m=[]
                 for h in range(0,self.x_lengths[j]):
                     if h==0:
-                        one_f_time=[0.0]*(len(self.dic)-1)
+                        one_f_time=[0.0]*(self.nFeatures)
                         one_imputed_deltapre.append(one_f_time)
                         try:
-                            one_sub=[self.times[j][h+1]-self.times[j][h]]*(len(self.dic)-1)
+                            one_sub=[self.times[j][h+1]-self.times[j][h]]*(self.nFeatures)
                         except:
                             print("error: "+str(h)+" "+str(len(self.times[j]))+" "+self.fileNames[j])
                         one_imputed_deltasub.append(one_sub)
-                        one_f_g_m=[1.0]*(len(self.dic)-1)
+                        one_f_g_m=[1.0]*(self.nFeatures)
                         one_G_m.append(one_f_g_m)
                     elif h==self.x_lengths[j]-1:
-                        one_f_time=[self.times[j][h]-self.times[j][h-1]]*(len(self.dic)-1)
+                        one_f_time=[self.times[j][h]-self.times[j][h-1]]*(self.nFeatures)
                         one_imputed_deltapre.append(one_f_time)
-                        one_sub=[0.0]*(len(self.dic)-1)
+                        one_sub=[0.0]*(self.nFeatures)
                         one_imputed_deltasub.append(one_sub)
-                        one_f_g_m=[1.0]*(len(self.dic)-1)
+                        one_f_g_m=[1.0]*(self.nFeatures)
                         one_G_m.append(one_f_g_m)
                     else:
-                        one_f_time=[self.times[j][h]-self.times[j][h-1]]*(len(self.dic)-1)
+                        one_f_time=[self.times[j][h]-self.times[j][h-1]]*(self.nFeatures)
                         one_imputed_deltapre.append(one_f_time)
-                        one_sub=[self.times[j][h+1]-self.times[j][h]]*(len(self.dic)-1)
+                        one_sub=[self.times[j][h+1]-self.times[j][h]]*(self.nFeatures)
                         one_imputed_deltasub.append(one_sub)
-                        one_f_g_m=[1.0]*(len(self.dic)-1)
+                        one_f_g_m=[1.0]*(self.nFeatures)
                         one_G_m.append(one_f_g_m)
                 while len(one_imputed_deltapre)<self.maxLength:
-                    one_f_time=[0.0]*(len(self.dic)-1)
+                    one_f_time=[0.0]*(self.nFeatures)
                     one_imputed_deltapre.append(one_f_time)
-                    one_sub=[0.0]*(len(self.dic)-1)
+                    one_sub=[0.0]*(self.nFeatures)
                     one_imputed_deltasub.append(one_sub)
-                    one_f_g_m=[0.0]*(len(self.dic)-1)
+                    one_f_g_m=[0.0]*(self.nFeatures)
                     one_G_m.append(one_f_g_m)
                 imputed_deltapre.append(one_imputed_deltapre)
                 imputed_deltasub.append(one_imputed_deltasub)
@@ -276,7 +276,7 @@ class ReadSepsisData():
                 #重新设置times,times和delta类似，但times生成的时候m全是1,用于生成器G
             i+=1
             if self.isNormal:
-                yield  x,y,[0.0]*(len(self.dic)-1),m,deltaPre,x_lengths,lastvalues,files,imputed_deltapre,imputed_m,deltaSub,subvalues,imputed_deltasub
+                yield  x,y,[0.0]*(self.nFeatures),m,deltaPre,x_lengths,lastvalues,files,imputed_deltapre,imputed_m,deltaSub,subvalues,imputed_deltasub
             else:
                 yield  x,y,mean,m,deltaPre,x_lengths,lastvalues,files,imputed_deltapre,imputed_m,deltaSub,subvalues,imputed_deltasub
             
