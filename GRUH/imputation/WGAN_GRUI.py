@@ -18,7 +18,7 @@ G输入去掉m,只有delta
 g 没有每次累加z
 """
 class WGAN(object):
-    model_name = "WGAN_no_mask"     # name for checkpoint
+    model_name = "WGAN"     # name for checkpoint
 
     def __init__(self, sess, args, datasets):
         self.sess = sess
@@ -56,7 +56,7 @@ class WGAN(object):
         # train
         self.learning_rate = args.lr
         self.beta1 = args.beta1
-        if "1.13" in tf.__version__ or "1.7" in tf.__version__ :
+        if "1.12" in tf.__version__ or "1.7" in tf.__version__ :
             self.grud_cell_d = mygru_cell.MyGRUCell15(self.n_hidden_units)
             self.grud_cell_g = mygru_cell.MyGRUCell15(self.n_hidden_units)
         elif "1.4" in tf.__version__:
@@ -359,7 +359,7 @@ class WGAN(object):
         
 
         #clip weight
-        self.clip_all_vals = [p.assign(tf.clip_by_value(p, -0.99, 0.99)) for p in t_vars]
+        self.clip_all_vals = [p.assign(tf.clip_by_value(p, -0.75, 0.75)) for p in t_vars]
         self.clip_D = [p.assign(tf.clip_by_value(p, -0.99, 0.99)) for p in d_vars]
         self.clip_G = [p.assign(tf.clip_by_value(p, -0.99, 0.99)) for p in g_vars]
         
