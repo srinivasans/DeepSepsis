@@ -71,7 +71,11 @@ class ReadImputedPhysionetData:
     def ready(self,y):
         this_y=[]
         for line in y.readlines():
-            d=[]
+            if "begin" in line:
+                d=[]
+                continue
+            if "end" in line:
+                continue
             words=line.strip().split(",")
             for w in words:
                 if w=='':

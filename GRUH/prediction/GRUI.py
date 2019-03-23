@@ -11,7 +11,7 @@ import os
 import numpy as np
 from sklearn import metrics
 import time
-import mygru_cell
+from GRU import grui_cell
 import tensorflow as tf
 from tensorflow.python.ops import math_ops
 tf.set_random_seed(1)   # set random seed
@@ -97,12 +97,12 @@ class grui(object):
             # X_in ==> (128 batches, 28 steps, 128 hidden) 换回3维
             #X_in = tf.reshape(X_in, [-1, n_steps, n_hidden_units])
          
-            if "1.5" in tf.__version__ or "1.7" in tf.__version__ :   
-                grud_cell = mygru_cell.MyGRUCell15(self.n_hidden_units)
+            if "1.13" in tf.__version__ or "1.7" in tf.__version__ :   
+                grud_cell = grui_cell.GRUICell15(self.n_hidden_units)
             elif "1.4" in tf.__version__:
-                grud_cell = mygru_cell.MyGRUCell4(self.n_hidden_units)
+                grud_cell = grui_cell.GRUICell4(self.n_hidden_units)
             elif "1.2" in tf.__version__:
-                grud_cell = mygru_cell.MyGRUCell2(self.n_hidden_units)
+                grud_cell = grui_cell.GRUICell2(self.n_hidden_units)
             init_state = grud_cell.zero_state(self.batch_size, dtype=tf.float32) # 初始化全零 state
             outputs, final_state = tf.nn.dynamic_rnn(grud_cell, X_in, \
                                 initial_state=init_state,\
@@ -110,10 +110,10 @@ class grui(object):
                                 time_major=False)
          
             #factor=tf.matrix_diag([1.0/9,1])
-            tempout=tf.matmul(tf.nn.dropout(outputs,Keep_prob), w_out) + b_out
-            results =tf.nn.softmax(tempout)#tf.matmul(tempout,factor))    #选取最后一个 output
+            #tempout=tf.matmul(tf.nn.dropout(outputs,Keep_prob), w_out) + b_out
+            #results =tf.nn.softmax(tempout)#tf.matmul(tempout,factor))    #选取最后一个 output
             #todo: dropout of 0.5 and batch normalization
-            return results
+            return outputs
     def build(self):
         
         self.pred = self.RNN(self.x, self.m, self.delta, self. mean, self.lastvalues, self.x_lengths, self.keep_prob)

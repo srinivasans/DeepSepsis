@@ -45,12 +45,13 @@ if "1.13" in tf.__version__ or "1.7" in tf.__version__:
                    reuse=None,
                    kernel_initializer=None,
                    bias_initializer=None,
-                   name=None):
+                   name=None,
+                   output_units=2):
         super(GRUICell15, self).__init__(_reuse=reuse, name=name)
     
         # Inputs must be 2-dimensional.
         self.input_spec = base_layer.InputSpec(ndim=2)
-    
+        self._output_units = output_units
         self._num_units = num_units
         self._activation = activation or math_ops.tanh
         self._kernel_initializer = kernel_initializer
@@ -62,7 +63,7 @@ if "1.13" in tf.__version__ or "1.7" in tf.__version__:
     
       @property
       def output_size(self):
-        return self._num_units
+        return self._output_units
     
       def build(self, inputs_shape):
         if inputs_shape[1].value is None:
@@ -88,6 +89,18 @@ if "1.13" in tf.__version__ or "1.7" in tf.__version__:
         self._candidate_bias = self.add_variable(
             "candidate/%s" % _BIAS_VARIABLE_NAME,
             shape=[self._num_units],
+            initializer=(
+                self._bias_initializer
+                if self._bias_initializer is not None
+                else init_ops.zeros_initializer(dtype=self.dtype)))
+
+        self._output_kernel = self.add_variable(
+            "output/%s" % _WEIGHTS_VARIABLE_NAME,
+            shape=[self._num_units, self._output_units],
+            initializer=self._kernel_initializer)
+        self._output_bias = self.add_variable(
+            "output/%s" % _BIAS_VARIABLE_NAME,
+            shape=[self._output_units],
             initializer=(
                 self._bias_initializer
                 if self._bias_initializer is not None
@@ -118,7 +131,14 @@ if "1.13" in tf.__version__ or "1.7" in tf.__version__:
     
         c = self._activation(candidate)
         new_h = u * state + (1 - u) * c
-        return new_h, new_h
+
+        output = math_ops.matmul(new_h, self._output_kernel)
+        output = nn_ops.bias_add(output, self._output_bias)
+        output = tf.nn.softmax(output)
+    
+        c = self._activation(candidate)
+
+        return output, new_h
 
 
 elif "1.4" in tf.__version__:
