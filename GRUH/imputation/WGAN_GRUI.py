@@ -10,7 +10,7 @@ import numpy as np
 from tensorflow.python.ops import math_ops
 from ops import *
 from utils import *
-from GRUI import mygru_cell
+from GRUI import grui_cell
 
 """
 D输入标准化， 不要m 填充0
@@ -57,14 +57,14 @@ class WGAN(object):
         self.learning_rate = args.lr
         self.beta1 = args.beta1
         if "1.12" in tf.__version__ or "1.7" in tf.__version__ :
-            self.grud_cell_d = mygru_cell.MyGRUCell15(self.n_hidden_units)
-            self.grud_cell_g = mygru_cell.MyGRUCell15(self.n_hidden_units)
+            self.grud_cell_d = grui_cell.GRUICell15(self.n_hidden_units)
+            self.grud_cell_g = grui_cell.GRUICell15(self.n_hidden_units)
         elif "1.4" in tf.__version__:
-            self.grud_cell_d = mygru_cell.MyGRUCell4(self.n_hidden_units)
-            self.grud_cell_g = mygru_cell.MyGRUCell4(self.n_hidden_units)
+            self.grud_cell_d = grui_cell.GRUICell4(self.n_hidden_units)
+            self.grud_cell_g = grui_cell.GRUICell4(self.n_hidden_units)
         elif "1.2" in tf.__version__:
-            self.grud_cell_d = mygru_cell.MyGRUCell2(self.n_hidden_units)
-            self.grud_cell_g = mygru_cell.MyGRUCell2(self.n_hidden_units)
+            self.grud_cell_d = grui_cell.GRUICell2(self.n_hidden_units)
+            self.grud_cell_g = grui_cell.GRUICell2(self.n_hidden_units)
         # test
         self.sample_num = 64  # number of generated images to be saved
 
