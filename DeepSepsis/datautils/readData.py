@@ -40,15 +40,15 @@ class ReadData():
         self.times = []
         self.files = []
         self.x_lengths = []
+        self.y_mask = []
+        self.UTP = []
+        self.UFN = []
+        self.UFP = []
 
         # Aggregate variables
         self.maxLength = maxLength # Count for padding using mini-batches
-        # if mean is not None:
-        #     self.mean = np.array([0.0]*self.nX)
-        # if std is not None:
-        #     self.std = np.array([0.0]*self.nX)
 
-        # Read data
+        # Read data (Mean and std passed on to load!)
         self.load(mean=mean, std=std) 
 
     def readFile(self, input_file):
@@ -120,6 +120,10 @@ class ReadData():
             self.m = np.full([m_values.shape[0], self.maxLength, self.nX], np.nan)
             self.timeDelay = np.full([delta_values.shape[0], self.maxLength, self.nX], np.nan)
             self.y = np.full([y_values.shape[0], self.maxLength], np.nan)
+            self.y_mask = np.ones([y_values.shape[0], self.maxLength])
+            self.UTP = np.zeros([y_values.shape[0], self.maxLength])
+            self.UFN = np.zeros([y_values.shape[0], self.maxLength])
+            self.UFP = np.zeros([y_values.shape[0], self.maxLength])
             
             for i in range(0, x_values.shape[0]):
                 assert x_values[i].shape[1]==self.nX
@@ -129,9 +133,33 @@ class ReadData():
                 self.y[i,0:y_values[i].shape[0]] = y_values[i]
 
                 # Padded y
-                self.y[i,y_values[i].shape[0]:] = y_values[i][y_values[i].shape[0]-1]
-            
+                #self.y[i,y_values[i].shape[0]:] = y_values[i][y_values[i].shape[0]-1]
+                self.y_mask[i,y_values[i].shape[0]:] = 0
+                
+                # Calculate Utility functions
+                self.UFP[i,:] = -0.05
+                pos = -1
+                for k in range(0,y_values[i].shape[0]):
+                    if self.y[i,k]>0.5:
+                        pos=k
+                        break
+                
+                if pos>=0:
+                    self.y[i,pos-6:pos]=1 # Fill -12->-6
+                    self.UFN[i,pos:pos+9]=np.array([-2.0*p/9.0 for p in range(0,np.min([9,self.maxLength-pos]))])
+                    self.UFN[i,pos+9:]=-2.0
+                    self.UTP[i,0:pos-8]=-0.05
+                    if pos<7:
+                        self.UTP[i,0:pos]=np.array([(7-pos+p)/7.0 for p in range(0,pos)])
+                    else:   
+                        self.UTP[i,pos-6:pos+1]=np.array([p/7.0 for p in range(0,7)])
+                    self.UTP[i,pos:pos+9]=np.array([1-(p/9.0) for p in range(0,np.min([9,self.maxLength-pos]))])
+
             self.y = np.reshape(self.y,(y_values.shape[0], self.maxLength,1))
+            self.y_mask = np.reshape(self.y_mask,(y_values.shape[0], self.maxLength,1))
+            self.UTP = np.reshape(self.UTP,(y_values.shape[0], self.maxLength,1))
+            self.UFN = np.reshape(self.UFN,(y_values.shape[0], self.maxLength,1))
+            self.UFP = np.reshape(self.UFP,(y_values.shape[0], self.maxLength,1))
 
         if self.isTrain:
             x_values = np.reshape(self.x, [-1, self.nX])
@@ -170,10 +198,15 @@ class ReadData():
         while cursor+self.batchSize <= self.x.shape[0]:
             x = self.x[cursor:cursor+self.batchSize]
             y = self.y[cursor:cursor+self.batchSize]
+            y_mask = self.y_mask[cursor:cursor+self.batchSize]
             m = self.m[cursor:cursor+self.batchSize]
             d = self.timeDelay[cursor:cursor+self.batchSize]
             xlen = self.x_lengths[cursor:cursor+self.batchSize]
+            utp = self.UTP[cursor:cursor+self.batchSize]
+            ufp = self.UFP[cursor:cursor+self.batchSize]
+            ufn = self.UFN[cursor:cursor+self.batchSize]
+
             cursor+=self.batchSize
-            yield x,y,m,d,xlen
+            yield x,y,m,d,xlen,y_mask,utp,ufp,ufn
     
 
