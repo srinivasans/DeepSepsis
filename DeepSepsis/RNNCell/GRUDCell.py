@@ -78,7 +78,7 @@ class GRUDCell(LayerRNNCell):
 
   @property
   def output_size(self):
-    return self._output_size
+    return self._hidden_size
 
   def build(self, inputs_shape):
     if inputs_shape[-1] is None:
@@ -134,18 +134,6 @@ class GRUDCell(LayerRNNCell):
             self._bias_initializer
             if self._bias_initializer is not None
             else init_ops.zeros_initializer(dtype=self.dtype)))
-    
-    self._output_kernel = self.add_variable(
-        "output/%s" % _WEIGHTS_VARIABLE_NAME,
-        shape=[self._hidden_size, self._output_size],
-        initializer=self._kernel_initializer)
-    self._output_bias = self.add_variable(
-        "output/%s" % _BIAS_VARIABLE_NAME,
-        shape=[self._output_size],
-        initializer=(
-            self._bias_initializer
-            if self._bias_initializer is not None
-            else init_ops.zeros_initializer(dtype=self.dtype)))
 
     self.built = True
 
@@ -183,15 +171,15 @@ class GRUDCell(LayerRNNCell):
     candidate = nn_ops.bias_add(candidate, self._candidate_bias)
 
     c = self._activation(candidate)
-    new_h = u * state_d + (1 - u) * c
+    new_h = (1 - u) * state_d + u * c
 
-    new_h_drop = tf.nn.dropout(new_h,keep_prob=self._dropout_rate)
-    output = math_ops.matmul(new_h_drop, self._output_kernel)
-    output = nn_ops.bias_add(output, self._output_bias)
+    #new_h_drop = tf.nn.dropout(new_h,keep_prob=self._dropout_rate)
+    #output = math_ops.matmul(new_h, self._output_kernel)
+    #output = nn_ops.bias_add(output, self._output_bias)
     
     #output = math_ops.sigmoid(output)
     # Return logits to use tensorflow sigmoid_cross_entropy with logits function
-    return output, new_h
+    return new_h, new_h
 
   def get_config(self):
     config = {

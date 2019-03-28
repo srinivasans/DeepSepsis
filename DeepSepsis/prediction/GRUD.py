@@ -5,6 +5,8 @@ import sys
 sys.path.append("..")
 import tensorflow as tf
 from RNNCell import GRUDCell
+from tensorflow.python.ops import math_ops
+from tensorflow.python.ops import nn_ops
 import time
 from sklearn import metrics
 import numpy as np
@@ -42,6 +44,26 @@ class grud():
         self.delta = tf.placeholder(tf.float32, [None, self.n_steps, self.n_inputs])
         self.mean = tf.placeholder(tf.float32, [self.n_inputs,])
         self.x_lengths = tf.placeholder(tf.float32, [self.batch_size,])
+        self.y_mask = tf.placeholder(tf.float32, [None, self.n_steps, self.n_classes])
+        self.utp = tf.placeholder(tf.float32, [None, self.n_steps, self.n_classes])
+        self.ufp = tf.placeholder(tf.float32, [None, self.n_steps, self.n_classes])
+        self.ufn = tf.placeholder(tf.float32, [None, self.n_steps, self.n_classes])
+        self.keep_prob = tf.placeholder(tf.float32)
+
+        # Output Weights
+        self.kernel_initializer = tf.initializers.orthogonal()
+        self.bias_initializer = tf.initializers.ones()
+        # self.output_kernel = tf.get_variable(
+        #                             "output/weights" ,
+        #                             shape=[self.n_hidden_units, self.n_classes],
+        #                             initializer=self.kernel_initializer,
+        #                             trainable=True)
+        # self.output_bias = tf.get_variable(
+        #                             "output/bias",
+        #                             shape=[self.n_classes],
+        #                             initializer=self.bias_initializer,
+        #                             trainable=True)
+
         self.sess = sess
 
     def getModelDir(self, epoch):
@@ -56,50 +78,89 @@ class grud():
             X = tf.reshape(x, [-1, self.n_inputs])
             M = tf.reshape(m, [-1, self.n_inputs])
             Delta = tf.reshape(delta, [-1, self.n_inputs])
-            X = tf.concat([X,M,Delta], axis=1)
-            X = tf.reshape(X, [-1, self.n_steps, 3*self.n_inputs])
+            #X = tf.concat([X,M,Delta], axis=1)
+            X = tf.concat([X,M], axis=1)
+            #X = tf.reshape(X, [-1, self.n_steps, 3*self.n_inputs])
+            X = tf.reshape(X, [-1, self.n_steps, 2*self.n_inputs])
 
-            grud_cell = GRUDCell.GRUDCell(input_size=self.n_inputs,
-                                        hidden_size=self.n_hidden_units,
-                                        indicator_size=self.n_inputs,
-                                        delta_size=self.n_inputs,
-                                        output_size = 1,
-                                        dropout_rate = self.dropout_rate,
-                                        xMean = mean, 
-                                        activation=None, # Uses tanh if None
-                                        reuse=tf.AUTO_REUSE,
-                                        kernel_initializer=tf.contrib.layers.variance_scaling_initializer(),#MSRA initializer
-                                        bias_initializer=tf.initializers.ones(),#ones - commonly used in LSTM http://www.jmlr.org/proceedings/papers/v37/jozefowicz15.pdf
-                                        name=None,
-                                        dtype=None)
+            # grud_cell = GRUDCell.GRUDCell(input_size=self.n_inputs,
+            #                             hidden_size=self.n_hidden_units,
+            #                             indicator_size=self.n_inputs,
+            #                             delta_size=self.n_inputs,
+            #                             output_size = 1,
+            #                             dropout_rate = self.dropout_rate,
+            #                             xMean = mean, 
+            #                             activation=None, # Uses tanh if None
+            #                             reuse=tf.AUTO_REUSE,
+            #                             kernel_initializer=self.kernel_initializer,#Orthogonal initializer
+            #                             bias_initializer=self.bias_initializer,#ones - commonly used in LSTM http://www.jmlr.org/proceedings/papers/v37/jozefowicz15.pdf
+            #                             name=None,
+            #                             dtype=None)
 
+            grud_cell = tf.nn.rnn_cell.GRUCell(num_units=self.n_hidden_units,
+                                                activation=None, # Uses tanh if None
+                                                reuse=tf.AUTO_REUSE,
+                                                kernel_initializer=self.kernel_initializer,#Orthogonal initializer
+                                                bias_initializer=self.bias_initializer)
+            grud_cell=tf.nn.rnn_cell.DropoutWrapper(grud_cell,output_keep_prob=self.keep_prob)
+            
             init_state = grud_cell.zero_state(self.batch_size, dtype=tf.float32) # Initializing first hidden state to zeros
-            outputs, _ = tf.nn.dynamic_rnn(grud_cell, X, \
-                                                    initial_state=init_state,\
-                                                    sequence_length=x_lengths,
-                                                    time_major=False)
+            outputs, _ = tf.nn.dynamic_rnn(grud_cell, X, 
+                                            initial_state=init_state,
+                                            sequence_length=x_lengths,
+                                            time_major=False)
+            
+            outputs=tf.reshape(outputs,[-1, self.n_hidden_units])
+            outputs = tf.nn.dropout(outputs,keep_prob=self.keep_prob)
+            outputs = tf.layers.dense(outputs,units=self.n_hidden_units, 
+                                        activation='relu', 
+                                        kernel_initializer=self.kernel_initializer,
+                                        kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-4))
+            outputs = tf.layers.dense(outputs,units=self.n_classes, 
+                                        kernel_initializer=self.kernel_initializer)
+            outputs=tf.reshape(outputs,[-1,self.n_steps,self.n_classes])
 
         return outputs
-
 
     def build(self):
         self.pred = self.RNN(self.x, self.m, self.delta, self.mean, self.x_lengths)
 
-        positive_class = tf.reduce_sum(tf.cast((self.y==1), dtype=tf.float32))
-        negative_class = tf.reduce_sum(tf.cast((self.y==0), dtype=tf.float32))
-        class_ratio = negative_class/(positive_class+1)
-        #class_ratio=30 - Change class ratio - left for experimentation
+        positive_class = tf.reduce_sum(tf.cast((self.y>0.5), dtype=tf.float32))
+        padding = tf.reduce_sum(tf.cast((self.y_mask<0.5), dtype=tf.float32))
+        negative_class = tf.reduce_sum(tf.cast((self.y<0.5), dtype=tf.float32))-padding
 
-        self.loss = tf.reduce_sum(tf.nn.weighted_cross_entropy_with_logits(targets=self.y, logits=self.pred, pos_weight=class_ratio))
-        #self.cross_entropy = -tf.reduce_sum(self.y*tf.log(self.pred)) # RNN return logits
+        self.class_ratio = (1.0*negative_class)/((0.05*negative_class))  #- Change class ratio - left for experimentation
+        
+        self.act = tf.nn.weighted_cross_entropy_with_logits(targets=self.y, logits=self.pred, pos_weight=self.class_ratio)
+        self.act = self.y_mask*self.act
+        
+        self.y_act = tf.sigmoid(self.pred)
+        self.utility = (self.y*self.y_act)*self.utp + (self.y*(1.0-self.y_act))*self.ufn + ((1.0-self.y)*self.y_act)*self.ufp
+        self.utility= self.y_mask*self.utility
+        self.utility = tf.reduce_mean(self.utility)
+
+        self.loss = tf.reduce_mean(self.act)
         self.train_op = tf.train.AdamOptimizer(self.lr).minimize(self.loss)
         
         self.y_pred = tf.cast((self.pred>self.threshold),dtype=tf.int32)
-        self.accuracy, self.update_op = tf.metrics.accuracy(labels=self.y,predictions=self.y_pred)
+        self.accuracy, self.acc_update = tf.metrics.accuracy(labels=self.y,predictions=self.y_pred)
+        self.tp, self.tp_update = tf.metrics.true_positives(labels=self.y,predictions=self.y_pred)
+        self.tpr = (1.0*self.tp)/(positive_class+1)
+        self.fp, self.fp_update = tf.metrics.false_positives(labels=self.y,predictions=self.y_pred)
+        self.fpr = (1.0*self.fp)/(negative_class+1)
+
+        self.metric_op = tf.group(self.acc_update, self.accuracy, self.tp_update, self.tp, self.fp_update, self.fp, self. tpr, self.fpr, self.class_ratio)
+
         self.saver = tf.train.Saver(max_to_keep=None)
         loss_sum = tf.summary.scalar("loss", self.loss)
         acc_sum = tf.summary.scalar("acc", self.accuracy)
-        self.sum=tf.summary.merge([loss_sum, acc_sum])
+        tp_sum = tf.summary.scalar("TP", self.tp)
+        tpr_sum = tf.summary.scalar("TPR", self.tpr)
+        fpr_sum = tf.summary.scalar("FPR", self.fpr)
+        fp_sum = tf.summary.scalar("FP", self.fp)
+        utility_sum = tf.summary.scalar("Utility", self.utility)
+
+        self.sum=tf.summary.merge([loss_sum, acc_sum, tp_sum, tpr_sum, fpr_sum, fp_sum, utility_sum])
         self.board = tf.summary.FileWriter(self.log_dir,self.sess.graph)
     
     def load_model(self, epoch):
@@ -128,30 +189,35 @@ class grud():
 
     def train(self):
         tf.global_variables_initializer().run()
-        tf.local_variables_initializer().run()
         start_time=time.time()
         idx = 0
         epochcount=0
         dataset=self.train_data
         counter = 0
         while epochcount<self.epochs:
+            tf.local_variables_initializer().run()
             dataset.shuffle()
-            for train_x,train_y,train_m,train_delta,train_xlen in dataset.getNextBatch():
-                _,loss,summary_str,acc,_ = self.sess.run([self.train_op,self.loss, self.sum, self.accuracy, self.update_op], feed_dict={\
+            for train_x,train_y,train_m,train_delta,train_xlen,y_mask,utp,ufp,ufn in dataset.getNextBatch():
+                _,loss,summary_str,acc,_, cr = self.sess.run([self.train_op,self.loss, self.sum, self.accuracy, self.metric_op, self.class_ratio], feed_dict={
                     self.x: train_x,
                     self.y: train_y,
                     self.m: train_m,
                     self.delta: train_delta, 
                     self.x_lengths: train_xlen,                   
                     self.mean: dataset.mean,
+                    self.y_mask:y_mask,
+                    self.utp:utp,
+                    self.ufp:ufp,
+                    self.ufn:ufn,
+                    self.keep_prob:self.dropout_rate
                 })
-                self.board.add_summary(summary_str, counter)
                 counter += 1
+            self.board.add_summary(summary_str, epochcount)
             epochcount+=1
             
             self.save_model(counter, epochcount)
             acc,auc=self.test()
-            print("epoch is : %2.2f, Accuracy: %.8f, AUC: %.8f" % (epochcount, acc, auc))
+            print("epoch is : %2.2f, Accuracy: %.8f, AUC: %.8f, Class Ratio: %.8f" % (epochcount, acc, auc, cr))
 
         return auc
 
@@ -162,7 +228,7 @@ class grud():
         dataset.shuffle()
         target = []
         predictions = []
-        for test_x,test_y,test_m,test_delta,test_xlen in dataset.getNextBatch():
+        for test_x,test_y,test_m,test_delta,test_xlen,y_mask,utp,ufp,ufn  in dataset.getNextBatch():
             summary_str,acc,pred = self.sess.run([self.sum, self.accuracy,self.pred], feed_dict={
                 self.x: test_x,
                 self.y: test_y,
@@ -170,6 +236,11 @@ class grud():
                 self.delta: test_delta,
                 self.mean: dataset.mean,
                 self.x_lengths: test_xlen,
+                self.y_mask:y_mask,
+                self.utp:utp,
+                self.ufp:ufp,
+                self.ufn:ufn,
+                self.keep_prob:1.0
             })
             # Remove padding for accuracy and AUC calculation
             for i in range(0,test_xlen.shape[0]):

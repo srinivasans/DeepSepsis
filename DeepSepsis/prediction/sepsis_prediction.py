@@ -18,18 +18,17 @@ if __name__ == '__main__':
     parser.add_argument('--lr', type=float, default=0.01)
     parser.add_argument('--epochs', type=int, default=1000)
     parser.add_argument('--n-inputs', type=int, default=36)
-    parser.add_argument('--n-hidden-units', type=int, default=49)
+    parser.add_argument('--n-hidden-units', type=int, default=100)
     parser.add_argument('--n-classes', type=int, default=1)
     parser.add_argument('--checkpoint-dir', type=str, default='checkpoint',
                         help='Directory name to save the checkpoints')
     parser.add_argument('--log-dir', type=str, default='logs',
                         help='Directory name to save training logs')
     parser.add_argument('--normalize',type=int,default=1)
-    parser.add_argument('--dropout-rate',type=float,default=0.5)
+    parser.add_argument('--dropout-rate',type=float,default=0.7)
     parser.add_argument('--celltype', type=str, default='GRUD')
     parser.add_argument('--experiment', type=str, default='GRUD')
     parser.add_argument('--threshold', type=float, default=0.5)
-
 
     args = parser.parse_args()
     
