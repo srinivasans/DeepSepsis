@@ -110,6 +110,7 @@ class ReadData():
         self.m = np.array(self.m)
         self.times = np.array(self.times)
         self.timeDelay = np.array(self.timeDelay)
+        self.files = np.array(self.files)
 
         if self.padding:
             x_values = self.x
@@ -137,7 +138,7 @@ class ReadData():
                 self.y_mask[i,y_values[i].shape[0]:] = 0
                 
                 # Calculate Utility functions
-                self.UFP[i,:] = -0.05
+                self.UFP[i,:] = -0.025
                 pos = -1
                 for k in range(0,y_values[i].shape[0]):
                     if self.y[i,k]>0.5:
@@ -148,7 +149,7 @@ class ReadData():
                     self.y[i,pos-6:pos]=1 # Fill -12->-6
                     self.UFN[i,pos:pos+9]=np.array([-2.0*p/9.0 for p in range(0,np.min([9,self.maxLength-pos]))])
                     self.UFN[i,pos+9:]=-2.0
-                    self.UTP[i,0:pos-8]=-0.05
+                    #self.UTP[i,0:pos-8]=-0.05 # Not required already taken care by FP
                     if pos<7:
                         self.UTP[i,0:pos]=np.array([(7-pos+p)/7.0 for p in range(0,pos)])
                     else:   
@@ -183,15 +184,16 @@ class ReadData():
             return self.mean
         
     def shuffle(self):
-        c = list(zip(self.x,self.y,self.m,self.timeDelay,self.times, self.x_lengths))
+        c = list(zip(self.x,self.y,self.m,self.timeDelay,self.times, self.x_lengths,self.files))
         random.shuffle(c)
-        self.x,self.y,self.m,self.timeDelay,self.times, self.x_lengths=zip(*c)
+        self.x,self.y,self.m,self.timeDelay,self.times, self.x_lengths,self.files=zip(*c)
         self.x = np.array(self.x)
         self.y = np.array(self.y)
         self.m = np.array(self.m)
         self.timeDelay = np.array(self.timeDelay)
         self.times = np.array(self.times)
         self.x_lengths = np.array(self.x_lengths)
+        self.files = np.array(self.files)
         
     def getNextBatch(self):
         cursor = 0
@@ -205,8 +207,9 @@ class ReadData():
             utp = self.UTP[cursor:cursor+self.batchSize]
             ufp = self.UFP[cursor:cursor+self.batchSize]
             ufn = self.UFN[cursor:cursor+self.batchSize]
+            files = self.files[cursor:cursor+self.batchSize]
 
             cursor+=self.batchSize
-            yield x,y,m,d,xlen,y_mask,utp,ufp,ufn
+            yield x,y,m,d,xlen,y_mask,utp,ufp,ufn,files
     
 
