@@ -88,6 +88,7 @@ if __name__ == '__main__':
                                   args=args,
                                   train_data=train_data,
                                   test_data=test_data)
+
             # build computational graph
             model.build()
 
