@@ -49,20 +49,11 @@ class grud():
         self.ufp = tf.placeholder(tf.float32, [None, self.n_steps, self.n_classes])
         self.ufn = tf.placeholder(tf.float32, [None, self.n_steps, self.n_classes])
         self.keep_prob = tf.placeholder(tf.float32)
+        self.isTrain = tf.placeholder(tf.bool)
 
         # Output Weights
-        self.kernel_initializer = tf.initializers.orthogonal()
+        self.kernel_initializer = tf.initializers.glorot_uniform()
         self.bias_initializer = tf.initializers.ones()
-        # self.output_kernel = tf.get_variable(
-        #                             "output/weights" ,
-        #                             shape=[self.n_hidden_units, self.n_classes],
-        #                             initializer=self.kernel_initializer,
-        #                             trainable=True)
-        # self.output_bias = tf.get_variable(
-        #                             "output/bias",
-        #                             shape=[self.n_classes],
-        #                             initializer=self.bias_initializer,
-        #                             trainable=True)
 
         self.sess = sess
 
@@ -111,6 +102,7 @@ class grud():
                                             time_major=False)
             
             outputs=tf.reshape(outputs,[-1, self.n_hidden_units])
+            outputs = tf.layers.batch_normalization(outputs, training=self.isTrain)
             outputs = tf.nn.dropout(outputs,keep_prob=self.keep_prob)
             outputs = tf.layers.dense(outputs,units=self.n_hidden_units, 
                                         activation='relu', 
@@ -119,6 +111,7 @@ class grud():
             outputs = tf.layers.dense(outputs,units=self.n_classes, 
                                         kernel_initializer=self.kernel_initializer)
             outputs=tf.reshape(outputs,[-1,self.n_steps,self.n_classes])
+            outputs = tf.layers.batch_normalization(outputs, training=self.isTrain)
 
         return outputs
 
@@ -129,17 +122,20 @@ class grud():
         padding = tf.reduce_sum(tf.cast((self.y_mask<0.5), dtype=tf.float32))
         negative_class = tf.reduce_sum(tf.cast((self.y<0.5), dtype=tf.float32))-padding
 
-        self.class_ratio = (1.0*negative_class)/((0.05*negative_class))  #- Change class ratio - left for experimentation
+        self.class_ratio = (negative_class)/((negative_class))  #- Change class ratio - left for experimentation
         
         self.act = tf.nn.weighted_cross_entropy_with_logits(targets=self.y, logits=self.pred, pos_weight=self.class_ratio)
         self.act = self.y_mask*self.act
+        self.act = self.act*(self.utp-self.ufp-self.ufn) # Weight by the utility loss
         
         self.y_act = tf.sigmoid(self.pred)
         self.utility = (self.y*self.y_act)*self.utp + (self.y*(1.0-self.y_act))*self.ufn + ((1.0-self.y)*self.y_act)*self.ufp
-        self.utility= self.y_mask*self.utility
-        self.utility = tf.reduce_mean(self.utility)
+        self.utility= tf.reduce_sum(self.y_mask*self.utility)
+        self.u_nopred = tf.reduce_sum(self.y_mask*self.y*self.ufn)
+        self.u_optimal = tf.reduce_sum(self.y_mask*self.y*self.utp)
+        self.normalized_utility = (self.utility-self.u_nopred)/(self.u_optimal-self.u_nopred)
 
-        self.loss = tf.reduce_mean(self.act)
+        self.loss = tf.reduce_sum(self.act)
         self.train_op = tf.train.AdamOptimizer(self.lr).minimize(self.loss)
         
         self.y_pred = tf.cast((self.pred>self.threshold),dtype=tf.int32)
@@ -158,15 +154,21 @@ class grud():
         tpr_sum = tf.summary.scalar("TPR", self.tpr)
         fpr_sum = tf.summary.scalar("FPR", self.fpr)
         fp_sum = tf.summary.scalar("FP", self.fp)
+        norm_utility_sum = tf.summary.scalar("Normalized Utility", self.normalized_utility)
         utility_sum = tf.summary.scalar("Utility", self.utility)
+        unopred_sum = tf.summary.scalar("Utility - No prediction", self.u_nopred)
+        uopt_sum = tf.summary.scalar("Utility Optimal", self.u_nopred)
 
-        self.sum=tf.summary.merge([loss_sum, acc_sum, tp_sum, tpr_sum, fpr_sum, fp_sum, utility_sum])
+
+        self.sum=tf.summary.merge([loss_sum, acc_sum, tp_sum, tpr_sum, fpr_sum, fp_sum, utility_sum, norm_utility_sum, unopred_sum, uopt_sum])
         self.board = tf.summary.FileWriter(self.log_dir,self.sess.graph)
     
-    def load_model(self, epoch):
+    def load_model(self, epoch, checkpoint_dir=None):
         import re
         import os
-        checkpoint_dir = os.path.join(self.checkpoint_dir, self.getModelDir(epoch), self.experiment)
+
+        if checkpoint_dir is None:
+            checkpoint_dir = os.path.join(self.checkpoint_dir, self.getModelDir(epoch), self.experiment)
 
         ckpt = tf.train.get_checkpoint_state(checkpoint_dir)
         if ckpt and ckpt.model_checkpoint_path:
@@ -209,25 +211,31 @@ class grud():
                     self.utp:utp,
                     self.ufp:ufp,
                     self.ufn:ufn,
-                    self.keep_prob:self.dropout_rate
+                    self.keep_prob:self.dropout_rate,
+                    self.isTrain:True
                 })
                 counter += 1
             self.board.add_summary(summary_str, epochcount)
             epochcount+=1
             
-            self.save_model(counter, epochcount)
+            if epochcount%10==0:
+                self.save_model(counter, epochcount)
             acc,auc=self.test()
             print("epoch is : %2.2f, Accuracy: %.8f, AUC: %.8f, Class Ratio: %.8f" % (epochcount, acc, auc, cr))
 
         return auc
 
-    def test(self):
+    def test(self, checkpoint_dir=None, test_epoch=100):
         start_time=time.time()
         counter=0
         dataset = self.test_data
         dataset.shuffle()
         target = []
         predictions = []
+
+        if checkpoint_dir is not None:
+            self.load_model(test_epoch, checkpoint_dir)
+
         for test_x,test_y,test_m,test_delta,test_xlen,y_mask,utp,ufp,ufn  in dataset.getNextBatch():
             summary_str,acc,pred = self.sess.run([self.sum, self.accuracy,self.pred], feed_dict={
                 self.x: test_x,
@@ -240,7 +248,8 @@ class grud():
                 self.utp:utp,
                 self.ufp:ufp,
                 self.ufn:ufn,
-                self.keep_prob:1.0
+                self.keep_prob:1.0,
+                self.isTrain:False
             })
             # Remove padding for accuracy and AUC calculation
             for i in range(0,test_xlen.shape[0]):
