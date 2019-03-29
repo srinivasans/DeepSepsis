@@ -110,6 +110,7 @@ class ReadData():
         self.m = np.array(self.m)
         self.times = np.array(self.times)
         self.timeDelay = np.array(self.timeDelay)
+        self.files = np.array(self.files)
 
         if self.padding:
             x_values = self.x
@@ -183,15 +184,16 @@ class ReadData():
             return self.mean
         
     def shuffle(self):
-        c = list(zip(self.x,self.y,self.m,self.timeDelay,self.times, self.x_lengths))
+        c = list(zip(self.x,self.y,self.m,self.timeDelay,self.times, self.x_lengths,self.files))
         random.shuffle(c)
-        self.x,self.y,self.m,self.timeDelay,self.times, self.x_lengths=zip(*c)
+        self.x,self.y,self.m,self.timeDelay,self.times, self.x_lengths,self.files=zip(*c)
         self.x = np.array(self.x)
         self.y = np.array(self.y)
         self.m = np.array(self.m)
         self.timeDelay = np.array(self.timeDelay)
         self.times = np.array(self.times)
         self.x_lengths = np.array(self.x_lengths)
+        self.files = np.array(self.files)
         
     def getNextBatch(self):
         cursor = 0
@@ -205,8 +207,9 @@ class ReadData():
             utp = self.UTP[cursor:cursor+self.batchSize]
             ufp = self.UFP[cursor:cursor+self.batchSize]
             ufn = self.UFN[cursor:cursor+self.batchSize]
+            files = self.files[cursor:cursor+self.batchSize]
 
             cursor+=self.batchSize
-            yield x,y,m,d,xlen,y_mask,utp,ufp,ufn
+            yield x,y,m,d,xlen,y_mask,utp,ufp,ufn,files
     
 
