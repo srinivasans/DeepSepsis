@@ -28,7 +28,7 @@ if __name__ == '__main__':
     parser.add_argument('--normalize',type=int,default=1)
     parser.add_argument('--dropout-rate',type=float,default=0.7)
     parser.add_argument('--celltype', type=str, default='GRUD')
-    parser.add_argument('--experiment', type=str, default='GRUDAct')
+    parser.add_argument('--experiment', type=str, default='GRUD')
     parser.add_argument('--threshold', type=float, default=0.5)
 
     args = parser.parse_args()
