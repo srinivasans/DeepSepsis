@@ -9,23 +9,42 @@ import tensorflow as tf
 from datautils import readData
 import GRUD
 
+'''
+args.batch_size=100
+args.data_path="../../data/train"
+args.model_path=None
+args.result_path='results'
+args.lr=0.001
+args.epochs=100
+args.n_inputs=36
+args.n_hidden_units=100
+args.n_classes=1
+args.checkpoint_dir='checkpoint'
+args.log_dir='logs'
+args.normalize=True
+args.dropout_rate=0.7
+args.celltype='GRUD'
+args.experiment='GRUDAct'
+args.threshold=0.5
+
+'''
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Arguments for sepsis prediction')
     parser.add_argument('--batch-size', type=int, default=100)
     parser.add_argument('--data-path', type=str, default="../../data/train")
     parser.add_argument('--model-path', type=str, default=None)
     parser.add_argument('--result-path', type=str, default='results')
-    parser.add_argument('--lr', type=float, default=0.01)
+    parser.add_argument('--lr', type=float, default=0.001)
     parser.add_argument('--epochs', type=int, default=1000)
     parser.add_argument('--n-inputs', type=int, default=36)
-    parser.add_argument('--n-hidden-units', type=int, default=200)
+    parser.add_argument('--n-hidden-units', type=int, default=72)
     parser.add_argument('--n-classes', type=int, default=1)
     parser.add_argument('--checkpoint-dir', type=str, default='checkpoint',
                         help='Directory name to save the checkpoints')
     parser.add_argument('--log-dir', type=str, default='logs',
                         help='Directory name to save training logs')
     parser.add_argument('--normalize',type=int,default=1)
-    parser.add_argument('--dropout-rate',type=float,default=0.7)
+    parser.add_argument('--dropout-rate',type=float,default=0.5)
     parser.add_argument('--celltype', type=str, default='GRUD')
     parser.add_argument('--experiment', type=str, default='GRUDAct')
     parser.add_argument('--threshold', type=float, default=0.5)
@@ -64,7 +83,7 @@ if __name__ == '__main__':
                             maxLength=train_data.maxLength)
 
         
-    lrs=[0.001]#[0.004,0.003,0.005,0.006,0.007,0.008,0.009,0.01,0.012,0.015]
+    lrs=[0.001]
     for lr in lrs:
         args.lr=lr
         print("epoch: %2d"%(args.epochs))

@@ -12,6 +12,23 @@ from sklearn import metrics
 import numpy as np
 import os
 
+'''
+_,loss,summary_str,acc,_, cr,out = sess.run([model.train_op, model.loss, model.sum, model.accuracy, model.metric_op, model.class_ratio, model.output], feed_dict={
+                    model.x: train_x,
+                    model.y: train_y,
+                    model.m: train_m,
+                    model.delta: train_delta, 
+                    model.x_lengths: train_xlen,                   
+                    model.mean: dataset.mean,
+                    model.y_mask:y_mask,
+                    model.utp:utp,
+                    model.ufp:ufp,
+                    model.ufn:ufn,
+                    model.keep_prob:model.dropout_rate,
+                    model.isTrain:True
+                })
+'''
+
 class grud():
     '''
     Class to run the GRUD model as described in https://www.nature.com/articles/s41598-018-24271-9
@@ -54,7 +71,7 @@ class grud():
 
         # Output Weights
         self.kernel_initializer = tf.initializers.glorot_uniform()
-        self.bias_initializer = tf.initializers.ones()
+        self.bias_initializer = tf.initializers.zeros()
 
         self.sess = sess
 
@@ -94,8 +111,8 @@ class grud():
                                                 reuse=tf.AUTO_REUSE,
                                                 kernel_initializer=self.kernel_initializer,#Orthogonal initializer
                                                 bias_initializer=self.bias_initializer)
-            grud_cell=tf.nn.rnn_cell.DropoutWrapper(grud_cell,output_keep_prob=self.keep_prob)
             
+            grud_cell=tf.nn.rnn_cell.DropoutWrapper(grud_cell,output_keep_prob=self.keep_prob)
             init_state = grud_cell.zero_state(self.batch_size, dtype=tf.float32) # Initializing first hidden state to zeros
             outputs, _ = tf.nn.dynamic_rnn(grud_cell, X, 
                                             initial_state=init_state,
@@ -104,14 +121,12 @@ class grud():
             
             outputs=tf.reshape(outputs,[-1, self.n_hidden_units])
             outputs = tf.nn.dropout(outputs,keep_prob=self.keep_prob)
-            outputs = tf.layers.dense(outputs,units=self.n_hidden_units, 
-                                        activation='relu', 
+            outputs = tf.layers.dense(outputs,units=self.n_hidden_units,
                                         kernel_initializer=self.kernel_initializer,
                                         kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-4))
-            
+            outputs = tf.nn.relu(outputs)
             outputs = tf.layers.dense(outputs,units=self.n_classes, 
                                         kernel_initializer=self.kernel_initializer)
-            
             outputs=tf.reshape(outputs,[-1,self.n_steps,self.n_classes])
             
         return outputs
@@ -119,6 +134,7 @@ class grud():
     def build(self):
         self.pred = self.RNN(self.x, self.m, self.delta, self.mean, self.x_lengths)
         self.output = tf.nn.sigmoid(self.pred)
+        #self.neg, self.output = tf.split(self.output, [1,1], -1)
 
         positive_class = tf.reduce_sum(tf.cast((self.y>0.5), dtype=tf.float32))
         padding = tf.reduce_sum(tf.cast((self.y_mask<0.5), dtype=tf.float32))
@@ -126,20 +142,26 @@ class grud():
 
         self.class_ratio = (negative_class)/((negative_class))  #- Change class ratio - left for experimentation
         
-        self.act = tf.nn.weighted_cross_entropy_with_logits(targets=self.y, logits=self.pred, pos_weight=self.class_ratio)
-        self.act = self.y_mask*self.act
-        self.act = self.act*(self.utp-self.ufp-self.ufn) # Weight by the utility loss
-
         self.utility = (self.y*self.output)*self.utp + (self.y*(1.0-self.output))*self.ufn + ((1.0-self.y)*self.output)*self.ufp
         self.utility= tf.reduce_sum(self.y_mask*self.utility)
         self.u_nopred = tf.reduce_sum(self.y_mask*self.y*self.ufn)
         self.u_optimal = tf.reduce_sum(self.y_mask*self.y*self.utp)
         self.normalized_utility = (self.utility-self.u_nopred)/(self.u_optimal-self.u_nopred)
 
-        self.loss = tf.reduce_sum(self.act)
-        self.train_op = tf.train.AdamOptimizer(self.lr).minimize(self.loss)
+
+        # self.target = tf.cast(tf.reshape(self.y,[-1,self.n_steps]),tf.int32)
+        # self.ymask = tf.reshape(self.y_mask*(self.utp-self.ufp-self.ufn),[-1,self.n_steps]) #    
         
-        self.y_pred = tf.cast((self.output>self.threshold),dtype=tf.int32)
+        self.act = tf.nn.weighted_cross_entropy_with_logits(targets=self.y, logits=self.pred, pos_weight=self.class_ratio)
+        self.act = self.y_mask*self.act
+        #self.act = self.act*(self.utp-self.ufp-self.ufn) # Weight by the utility loss
+        self.loss = tf.reduce_sum(self.act)/self.batch_size
+        
+        # ce = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=self.target,logits=self.pred)
+        # self.loss = tf.reduce_sum(ce*self.ymask)/self.batch_size
+        self.train_op = tf.train.AdamOptimizer(self.lr).minimize(self.loss)
+ 
+        self.y_pred = tf.cast(((self.output*self.y_mask)>self.threshold),dtype=tf.int32)
         self.accuracy, self.acc_update = tf.metrics.accuracy(labels=self.y,predictions=self.y_pred)
         self.tp, self.tp_update = tf.metrics.true_positives(labels=self.y,predictions=self.y_pred)
         self.tpr = (1.0*self.tp)/(positive_class+1)
@@ -159,7 +181,6 @@ class grud():
         utility_sum = tf.summary.scalar("Utility", self.utility)
         unopred_sum = tf.summary.scalar("Utility - No prediction", self.u_nopred)
         uopt_sum = tf.summary.scalar("Utility Optimal", self.u_nopred)
-
 
         self.sum=tf.summary.merge([loss_sum, acc_sum, tp_sum, tpr_sum, fpr_sum, fp_sum, utility_sum, norm_utility_sum, unopred_sum, uopt_sum])
         self.board = tf.summary.FileWriter(self.log_dir,self.sess.graph)
@@ -205,7 +226,7 @@ class grud():
             tf.local_variables_initializer().run()
             dataset.shuffle()
             for train_x,train_y,train_m,train_delta,train_xlen,y_mask,utp,ufp,ufn,files in dataset.getNextBatch():
-                _,loss,summary_str,acc,_, cr = self.sess.run([self.train_op,self.loss, self.sum, self.accuracy, self.metric_op, self.class_ratio], feed_dict={
+                _,loss,summary_str,acc,_, cr = self.sess.run([self.train_op, self.loss, self.sum, self.accuracy, self.metric_op, self.class_ratio], feed_dict={
                     self.x: train_x,
                     self.y: train_y,
                     self.m: train_m,
@@ -220,13 +241,16 @@ class grud():
                     self.isTrain:True
                 })
                 counter += 1
-            self.board.add_summary(summary_str, epochcount)
+                self.board.add_summary(summary_str, counter)
             epochcount+=1
             
             if epochcount%10==0:
                 self.save_model(counter, epochcount)
+            auc = 0.0
+            val_loss = 0.0
+            acc = 0.0
             acc,auc,val_loss=self.test()
-            print("epoch is : %2.2f, Accuracy: %.8f, AUC: %.8f, ValLoss: %.8f, CR: %.8f" % (epochcount, acc, auc, val_loss, cr))
+            print("epoch is : %2.2f, Accuracy: %.8f, AUC: %.8f, TrainLoss: %.8f, ValLoss: %.8f, CR: %.8f" % (epochcount, acc, auc, loss, val_loss, cr))
         return auc
 
     def save_output(self,predictions,filenames):
@@ -253,7 +277,6 @@ class grud():
         if checkpoint_dir is not None:
             self.load_model(test_epoch, checkpoint_dir)
 
-        tf.global_variables_initializer().run()
         tf.local_variables_initializer().run()
         for test_x,test_y,test_m,test_delta,test_xlen,y_mask,utp,ufp,ufn,files  in dataset.getNextBatch():
             summary_str,acc,pred,val_loss = self.sess.run([self.sum, self.accuracy,self.output, self.loss], feed_dict={
@@ -276,7 +299,7 @@ class grud():
                 predictions.extend(list(pred[i, 0:test_xlen[i]]))
                 predictions_ind.append(list(pred[i, 0:test_xlen[i]]))
                 test_files.append(files[i])
-            self.save_output(predictions_ind,test_files)
+            #self.save_output(predictions_ind,test_files)
             
         auc = metrics.roc_auc_score(np.array(target),np.array(predictions))
         predictions = np.array(np.array(predictions)>self.threshold).astype(int)
