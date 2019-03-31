@@ -7,7 +7,8 @@ import argparse
 import os
 import tensorflow as tf
 from datautils import readData
-import GRUD
+import GRUD, LSTM, GRU
+
 
 '''
 args.batch_size=100
@@ -46,11 +47,11 @@ if __name__ == '__main__':
     parser.add_argument('--normalize',type=int,default=1)
     parser.add_argument('--dropout-rate',type=float,default=0.5)
     parser.add_argument('--celltype', type=str, default='GRUD')
-    parser.add_argument('--experiment', type=str, default='GRUDAct')
+    parser.add_argument('--experiment', type=str, default='GRUD')
     parser.add_argument('--threshold', type=float, default=0.5)
 
     args = parser.parse_args()
-    
+
     if args.normalize==0:
             args.normalize=False
     if args.normalize==1:
@@ -64,15 +65,15 @@ if __name__ == '__main__':
 
     args.checkpoint_dir=os.path.join(checkdir, args.experiment)
     args.log_dir=os.path.join(logdir,args.experiment)
-    
+
     train_data=readData.ReadData(path=args.data_path,
-                                batchSize=args.batch_size, 
-                                isTrain=True, 
-                                normalize=args.normalize, 
-                                padding=True, 
-                                mean = None, 
+                                batchSize=args.batch_size,
+                                isTrain=True,
+                                normalize=args.normalize,
+                                padding=True,
+                                mean = None,
                                 std = None)
-    
+
     test_data=readData.ReadData(path=args.data_path.replace("train","test"),
                             batchSize=args.batch_size,
                             isTrain=False,
@@ -88,14 +89,25 @@ if __name__ == '__main__':
         args.lr=lr
         print("epoch: %2d"%(args.epochs))
         tf.reset_default_graph()
-        config = tf.ConfigProto() 
-        config.gpu_options.allow_growth = True 
+        config = tf.ConfigProto()
+        config.gpu_options.allow_growth = True
         with tf.Session(config=config) as sess:
-            model = GRUD.grud(sess,
-                        args=args,
-                        train_data=train_data,
-                        test_data=test_data
-                        )
+            if args.experiment == "LSTM":
+                model = LSTM.lstm(sess,
+                                  args=args,
+                                  train_data=train_data,
+                                  test_data=test_data)
+            elif args.experiment == "GRU":
+                model = GRU.gru(sess,
+                                args=args,
+                                train_data=train_data,
+                                test_data=test_data)
+            else:
+                model = GRUD.grud(sess,
+                                  args=args,
+                                  train_data=train_data,
+                                  test_data=test_data)
+
             # build computational graph
             model.build()
 
@@ -103,7 +115,7 @@ if __name__ == '__main__':
             auc = model.train()
             if auc > max_auc:
                 max_auc = auc
-            
+
     print("max auc is: " + str(max_auc))
     f2 = open(('_').join(["max_auc",args.celltype]),"w")
     f2.write(str(max_auc))
