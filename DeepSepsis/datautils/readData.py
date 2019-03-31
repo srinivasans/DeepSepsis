@@ -133,8 +133,7 @@ class ReadData():
                 self.timeDelay[i,0:delta_values[i].shape[0],:] = delta_values[i][:,:]
                 self.y[i,0:y_values[i].shape[0]] = y_values[i]
 
-                # Padded y
-                #self.y[i,y_values[i].shape[0]:] = y_values[i][y_values[i].shape[0]-1]
+                # Create y-mask
                 self.y_mask[i,y_values[i].shape[0]:] = 0
                 
                 # Calculate Utility functions
@@ -146,7 +145,7 @@ class ReadData():
                         break
                 
                 if pos>=0:
-                    self.y[i,pos-6:pos]=1 # Fill -12->-6
+                    # self.y[i,pos-6:pos]=1 # Fill -12->-6
                     self.UFN[i,pos:pos+9]=np.array([-2.0*p/9.0 for p in range(0,np.min([9,self.maxLength-pos]))])
                     self.UFN[i,pos+9:]=-2.0
                     #self.UTP[i,0:pos-8]=-0.05 # Not required already taken care by FP
@@ -171,7 +170,9 @@ class ReadData():
             self.std = std
         
         if self.normalize:
-            self.x = np.nan_to_num((self.x - self.mean) / self.std)
+            # Do not normalize gender
+            self.x[:,:,0:self.nX-1] = np.nan_to_num((self.x[:,:,0:self.nX-1] - self.mean[0:self.nX-1]) / self.std[0:self.nX-1])
+            self.x = np.nan_to_num(self.x)
             self.m = np.nan_to_num(self.m)
             self.timeDelay = np.nan_to_num(self.timeDelay)
             self.y = np.nan_to_num(self.y)
@@ -184,16 +185,20 @@ class ReadData():
             return self.mean
         
     def shuffle(self):
-        c = list(zip(self.x,self.y,self.m,self.timeDelay,self.times, self.x_lengths,self.files))
+        c = list(zip(self.x,self.y,self.m,self.timeDelay,self.times, self.x_lengths,self.files, self.y_mask, self.UTP, self.UFP, self.UFN))
         random.shuffle(c)
-        self.x,self.y,self.m,self.timeDelay,self.times, self.x_lengths,self.files=zip(*c)
+        self.x,self.y,self.m,self.timeDelay,self.times, self.x_lengths,self.files, self.y_mask, self.UTP, self.UFP, self.UFN=zip(*c)
         self.x = np.array(self.x)
         self.y = np.array(self.y)
         self.m = np.array(self.m)
+        self.y_mask = np.array(self.y_mask)
         self.timeDelay = np.array(self.timeDelay)
         self.times = np.array(self.times)
         self.x_lengths = np.array(self.x_lengths)
         self.files = np.array(self.files)
+        self.UTP = np.array(self.UTP)
+        self.UFP = np.array(self.UFP)
+        self.UFN = np.array(self.UFN)
         
     def getNextBatch(self):
         cursor = 0
