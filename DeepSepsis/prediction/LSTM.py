@@ -1,13 +1,8 @@
-"""
-Author: Srinivasan Sivanandan
-"""
 import sys
 
 sys.path.append("..")
 import tensorflow as tf
-# from RNNCell import LSTMSimpleCell
 from tensorflow.contrib.rnn import LSTMCell
-from tensorflow.layers import dense
 import time
 from sklearn import metrics
 import numpy as np
