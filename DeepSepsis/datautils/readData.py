@@ -213,8 +213,10 @@ class ReadData():
             ufp = self.UFP[cursor:cursor+self.batchSize]
             ufn = self.UFN[cursor:cursor+self.batchSize]
             files = self.files[cursor:cursor+self.batchSize]
+            t = self.times[cursor:cursor+self.batchSize]
+            t = np.expand_dims(t, axis=2)
 
             cursor+=self.batchSize
-            yield x,y,m,d,xlen,y_mask,utp,ufp,ufn,files
+            yield x,y,m,d,xlen,y_mask,utp,ufp,ufn,files,t
     
 
