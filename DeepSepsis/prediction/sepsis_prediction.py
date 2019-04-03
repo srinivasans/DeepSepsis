@@ -7,7 +7,7 @@ import argparse
 import os
 import tensorflow as tf
 from datautils import readData
-import GRUD, LSTM, GRU
+import GRUD, LSTM
 
 
 '''
@@ -45,7 +45,7 @@ if __name__ == '__main__':
     parser.add_argument('--log-dir', type=str, default='logs',
                         help='Directory name to save training logs')
     parser.add_argument('--normalize',type=int,default=1)
-    parser.add_argument('--dropout-rate',type=float,default=0.5)
+    parser.add_argument('--dropout-rate',type=float,default=0.8)
     parser.add_argument('--celltype', type=str, default='GRUD')
     parser.add_argument('--experiment', type=str, default='GRUD')
     parser.add_argument('--threshold', type=float, default=0.5)
@@ -74,6 +74,16 @@ if __name__ == '__main__':
                                 mean = None,
                                 std = None)
 
+    validation_data=readData.ReadData(path=args.data_path.replace("train","validation"),
+                            batchSize=args.batch_size,
+                            isTrain=False,
+                            normalize=args.normalize,
+                            padding=True,
+                            mean=train_data.mean,
+                            std=train_data.std,
+                            maxLength=train_data.maxLength)
+
+
     test_data=readData.ReadData(path=args.data_path.replace("train","test"),
                             batchSize=args.batch_size,
                             isTrain=False,
@@ -83,7 +93,7 @@ if __name__ == '__main__':
                             std=train_data.std,
                             maxLength=train_data.maxLength)
 
-        
+
     lrs=[0.001]
     for lr in lrs:
         args.lr=lr
@@ -92,16 +102,12 @@ if __name__ == '__main__':
         config = tf.ConfigProto()
         config.gpu_options.allow_growth = True
         with tf.Session(config=config) as sess:
-            if args.experiment == "LSTM":
+            if args.celltype == "LSTM":
                 model = LSTM.lstm(sess,
                                   args=args,
                                   train_data=train_data,
+                                  validation_data=validation_data,
                                   test_data=test_data)
-            elif args.experiment == "GRU":
-                model = GRU.gru(sess,
-                                args=args,
-                                train_data=train_data,
-                                test_data=test_data)
             else:
                 model = GRUD.grud(sess,
                                   args=args,
@@ -112,12 +118,18 @@ if __name__ == '__main__':
             model.build()
 
             # Train model - (Internally validate the model on test set)
-            auc = model.train()
+            auc, tp, fp, tn, fn = model.train()
             if auc > max_auc:
                 max_auc = auc
 
+            test_acc, test_auc, test_tp, test_fp, test_tn, test_fn, sens, spec = model.test(val=False)
+
     print("max auc is: " + str(max_auc))
-    f2 = open(('_').join(["max_auc",args.celltype]),"w")
-    f2.write(str(max_auc))
+    f2 = open(('_').join(["max_auc",args.experiment]),"w")
+    f2.write("val auc: {}".format(max_auc))
+    f2.write("\nval tp: {}, fp: {}, tn: {}, fn: {}".format(tp, fp, tn, fn))
+    f2.write("\ntest auc: {}".format(test_auc))
+    f2.write("\ntest tp: {}, fp: {}, tn: {}, fn: {}".format(test_tp, test_fp, test_tn, test_fn))
+    f2.write("\ntest sensitivity: {}, specificity: {}".format(sens, spec))
     f2.close()
 
