@@ -12,13 +12,13 @@ class ImputerData(data.Data):
     def __init__(self, path, files, batchSize = 100, isTrain=True, normalize=True, padding=True, mean = None, std = None, maxLength=0.0):
         super(ImputerData, self).__init__(path,files,batchSize,isTrain,normalize,padding,mean,std,maxLength)
 
-    def getNextBatch(self, epoch=0):
+    def getNextBatch(self, epoch=0, minMaskEpoch=10):
         cursor = 0
         while cursor+self.batchSize <= self.x.shape[0]:
             x = self.x[cursor:cursor+self.batchSize]
             
             # Simulate missingness only during Training
-            if self.isTrain and epoch > 10:
+            if self.isTrain and epoch > minMaskEpoch:
                 mask = np.random.choice([0, 1], size=self.batchSize*self.x.shape[1]*self.x.shape[2], p=[0.4, 0.6])
                 mask = mask.reshape(x.shape)
                 x = x*mask

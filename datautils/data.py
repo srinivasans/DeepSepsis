@@ -8,7 +8,7 @@ import random
 
 class Data():
 
-    def __init__(self, path, files, batchSize = 100, isTrain=True, normalize=True, padding=True, mean = None, std = None, maxLength=0.0):
+    def __init__(self, path, files, batchSize = 100, isTrain=True, normalize=True, padding=True, mean = None, std = None, maxLength=0):
         # Phase parameters
         self.path=path
         self.files = files
@@ -39,7 +39,6 @@ class Data():
         self.m = []
         self.timeDelay = []
         self.times = []
-        self.files = []
         self.x_lengths = []
         self.y_mask = []
         self.UTP = []
@@ -89,7 +88,6 @@ class Data():
         self.m = []
         self.timeDelay = []
         self.times = []
-        self.files = []
         self.x_lengths = []
         for input_file in self.files:
             x,y,m,t,d = self.readFile(input_file)
@@ -108,7 +106,6 @@ class Data():
         self.m = np.array(self.m)
         self.times = np.array(self.times)
         self.timeDelay = np.array(self.timeDelay)
-        self.files = np.array(self.files)
 
         if self.padding:
             x_values = self.x
