@@ -153,9 +153,10 @@ class grud():
         # self.ymask = tf.reshape(self.y_mask*(self.utp-self.ufp-self.ufn),[-1,self.n_steps]) #    
         
         self.act = tf.nn.weighted_cross_entropy_with_logits(targets=self.y, logits=self.pred, pos_weight=self.class_ratio)
+        #self.act = self.utility
         self.act = self.y_mask*self.act
-        #self.act = self.act*(self.utp-self.ufp-self.ufn) # Weight by the utility loss
-        self.loss = tf.reduce_sum(self.act)/self.batch_size
+        self.act = self.act*(self.utp-self.ufp-self.ufn) # Weight by the utility loss
+        self.loss = tf.reduce_mean(self.act)
         
         # ce = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=self.target,logits=self.pred)
         # self.loss = tf.reduce_sum(ce*self.ymask)/self.batch_size
@@ -244,12 +245,13 @@ class grud():
                 self.board.add_summary(summary_str, counter)
             epochcount+=1
             
-            if epochcount%10==0:
-                self.save_model(counter, epochcount)
+            if epochcount%1==0:
+                self.save_model(epochcount, epochcount)
             auc = 0.0
             val_loss = 0.0
             acc = 0.0
-            acc,auc,val_loss=self.test()
+            test_counter = (epochcount-1)*counter/epochcount
+            acc,auc,val_loss=self.test(counter=test_counter)
             print("epoch is : %2.2f, Accuracy: %.8f, AUC: %.8f, TrainLoss: %.8f, ValLoss: %.8f, CR: %.8f" % (epochcount, acc, auc, loss, val_loss, cr))
         return auc
 
@@ -262,11 +264,10 @@ class grud():
             with open(filename,'w') as f:
                 f.write('PredictedProbability|PredictedLabel\n')
                 for j in range(0, len(predictions[i])):
-                    f.write(str(predictions[i][j])+'|'+str(int(predictions[i][j]>self.threshold))+'\n')
+                    f.write(str(predictions[i][j][0])+'|'+str(int(predictions[i][j][0]>self.threshold))+'\n')
 
-    def test(self, checkpoint_dir=None, test_epoch=100, generate_files=False):
+    def test(self, checkpoint_dir=None, test_epoch=100, generate_files=False,counter=0):
         start_time=time.time()
-        counter=0
         dataset = self.test_data
         dataset.shuffle()
         target = []
@@ -299,7 +300,9 @@ class grud():
                 predictions.extend(list(pred[i, 0:test_xlen[i]]))
                 predictions_ind.append(list(pred[i, 0:test_xlen[i]]))
                 test_files.append(files[i])
-            #self.save_output(predictions_ind,test_files)
+            
+            if generate_files:
+                self.save_output(predictions_ind,test_files)
             
         auc = metrics.roc_auc_score(np.array(target),np.array(predictions))
         predictions = np.array(np.array(predictions)>self.threshold).astype(int)

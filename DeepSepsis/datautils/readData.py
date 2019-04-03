@@ -137,7 +137,7 @@ class ReadData():
                 self.y_mask[i,y_values[i].shape[0]:] = 0
                 
                 # Calculate Utility functions
-                self.UFP[i,:] = -0.025
+                self.UFP[i,:] = -0.05
                 pos = -1
                 for k in range(0,y_values[i].shape[0]):
                     if self.y[i,k]>0.5:
@@ -145,7 +145,7 @@ class ReadData():
                         break
                 
                 if pos>=0:
-                    # self.y[i,pos-6:pos]=1 # Fill -12->-6
+                    self.y[i,pos-6:pos]=1 # Fill -12->-6
                     self.UFN[i,pos:pos+9]=np.array([-2.0*p/9.0 for p in range(0,np.min([9,self.maxLength-pos]))])
                     self.UFN[i,pos+9:]=-2.0
                     #self.UTP[i,0:pos-8]=-0.05 # Not required already taken care by FP
