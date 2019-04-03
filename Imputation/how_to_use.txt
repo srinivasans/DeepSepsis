@@ -1,2 +1,0 @@
-- Run read_data.py --> this will transform sepsis data into a format that is acceptable by the gan
-- Run Gan_Imputation/Physionet_main_sepsis.py --> this will train the gan and generate the imputed data
