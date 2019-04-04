@@ -141,7 +141,7 @@ class grud():
         padding = tf.reduce_sum(tf.cast((self.y_mask<0.5), dtype=tf.float32))
         negative_class = tf.reduce_sum(tf.cast((self.y<0.5), dtype=tf.float32))-padding
 
-        self.class_ratio = (negative_class)/((negative_class))  #- Change class ratio - left for experimentation
+        self.class_ratio = (70.0*negative_class)/((negative_class))  #- Change class ratio - left for experimentation
         
         self.utility = (self.y*self.output)*self.utp + (self.y*(1.0-self.output))*self.ufn + ((1.0-self.y)*self.output)*self.ufp
         self.utility= tf.reduce_sum(self.y_mask*self.utility)
@@ -153,7 +153,7 @@ class grud():
         self.act = tf.nn.weighted_cross_entropy_with_logits(targets=self.y, logits=self.pred, pos_weight=self.class_ratio)
         #self.act = self.utility
         self.act = self.y_mask*self.act
-        self.act = self.act*(self.utp-self.ufp-self.ufn) # Weight by the utility loss
+        #self.act = self.act*(self.utp-self.ufp-self.ufn) # Weight by the utility loss
         self.loss = tf.reduce_mean(self.act)
         
         # ce = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=self.target,logits=self.pred)
@@ -249,7 +249,7 @@ class grud():
             
             if epochcount%1==0:
                 self.save_model(epochcount, epochcount)
-            
+            val_counter = counter
             acc, auc, val_loss, tp, fp, tn, fn, val_counter = self.test(counter=val_counter)
             print("epoch is : %2.2f, Accuracy: %.8f, AUC: %.8f, TrainLoss: %.8f, ValLoss: %.8f, CR: %.8f" % (epochcount, acc, auc, loss, val_loss, cr))
         return auc, tp, fp, tn. fn
@@ -272,7 +272,6 @@ class grud():
             dataset = self.test_data
         
         start_time=time.time()
-        dataset = self.test_data
         dataset.shuffle()
         target = []
         predictions = []
