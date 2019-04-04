@@ -46,6 +46,9 @@ class Data():
         self.UFN = []
         self.UFP = []
 
+        self.input_dim = self.nX
+        self.output_dim = 1
+
         # Aggregate variables
         self.maxLength = maxLength # Count for padding using mini-batches
 
@@ -227,4 +230,28 @@ class Data():
             cursor+=self.batchSize
             yield x,y,m,d,xlen,y_mask,utp,ufp,ufn,files,t
     
+    def getBatchGenerator(self, shuffle=False):
+        while True:
+            if shuffle:
+                self.shuffle()
+            gen = self.getNextBatch()
+            val = next(gen, None)
+            while val is not None:
+                x,y,m,_,_,y_mask,_,_,_,_,t = val
 
+                weights = y * 70.0 + (1-y) * 1.0
+                weights = weights * y_mask
+                weights = np.reshape(weights, (weights.shape[0],weights.shape[1]))
+
+                val = next(gen, None)
+                yield ([x,m,t], y, weights)
+
+    def getInputGenerator(self):
+        for inputs, _, _ in self.getBatchGenerator():
+            yield inputs
+
+    def getTargets(self):
+        return self.y
+
+    def getSteps(self):
+        return self.x.shape[0] // self.batchSize

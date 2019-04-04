@@ -8,7 +8,7 @@ import data
 
 class Dataset():
 
-    def __init__(self, path, batchSize = 100, train_ratio=0.8, normalize=True, padding=True, maxLength=0, imputeForward=False):
+    def __init__(self, path, batchSize = 100, train_ratio=0.8, normalize=True, padding=True, maxLength=336, imputeForward=False):
         self.path = path
         self.batchSize = batchSize
         self.normalize = normalize
@@ -28,6 +28,7 @@ class Dataset():
         self.test_files = self.input_files[self.train_size+self.val_size:]
         assert len(self.test_files)==self.test_size
         
+        print("Processing train data...")
         self.train_data = data.Data(path, 
                                     files=self.train_files, 
                                     batchSize = self.batchSize, 
@@ -39,6 +40,7 @@ class Dataset():
                                     maxLength=maxLength,
                                     imputeForward=imputeForward)
         
+        print("Processing val data...")
         self.val_data = data.Data(path,
                                     files=self.val_files,
                                     batchSize=self.batchSize,
@@ -50,6 +52,7 @@ class Dataset():
                                     maxLength=self.train_data.maxLength,
                                     imputeForward=imputeForward)
 
+        print("Processing test data...")
         self.test_data = data.Data(path,
                                     files=self.test_files,
                                     batchSize=self.batchSize,
