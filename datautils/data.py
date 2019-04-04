@@ -8,7 +8,7 @@ import random
 
 class Data():
 
-    def __init__(self, path, files, batchSize = 100, isTrain=True, normalize=True, padding=True, mean = None, std = None, maxLength=0):
+    def __init__(self, path, files, batchSize = 100, isTrain=True, normalize=True, padding=True, mean = None, std = None, maxLength=0, imputeForward=False):
         # Phase parameters
         self.path=path
         self.files = files
@@ -16,6 +16,7 @@ class Data():
         self.normalize = normalize
         self.padding = padding
         self.batchSize = batchSize
+        self.imputeForward = imputeForward
 
         # Sepsis specific parameters
         self.features = {'HR':0, 'O2Sat':1, 'Temp':2,
@@ -77,6 +78,7 @@ class Data():
                     delay[i] = times[i]-times[i-1]+delay[i-1,j]
                 else:
                     delay[i] = times[i]-times[i-1]
+                    
 
         indicator = np.array(~np.isnan(values)).astype(int)
         return values, target, indicator, times, delay
@@ -166,11 +168,22 @@ class Data():
         
         if self.normalize:
             # Do not normalize gender
-            self.x[:,:,0:self.nX-1] = np.nan_to_num((self.x[:,:,0:self.nX-1] - self.mean[0:self.nX-1]) / self.std[0:self.nX-1])
-            self.x = np.nan_to_num(self.x)
-            self.m = np.nan_to_num(self.m)
-            self.timeDelay = np.nan_to_num(self.timeDelay)
-            self.y = np.nan_to_num(self.y)
+            self.x[:,:,0:self.nX-1] = (self.x[:,:,0:self.nX-1] - self.mean[0:self.nX-1]) / self.std[0:self.nX-1]
+        
+        if self.imputeForward:
+            # For each patient
+            for i in range(0, self.x.shape[0]):
+                # For each feature
+                for k in range(0, self.x.shape[2]):
+                    # For each time step - from time 2
+                    for j in range(1, self.x_lengths[i]):
+                        if(np.isnan(self.x[i,j,k])):
+                            self.x[i,j,k] = self.x[i,j-1,k]
+
+        self.x = np.nan_to_num(self.x)
+        self.m = np.nan_to_num(self.m)
+        self.timeDelay = np.nan_to_num(self.timeDelay)
+        self.y = np.nan_to_num(self.y)
         
         
     def getMean(self):

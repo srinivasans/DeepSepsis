@@ -8,7 +8,7 @@ import data
 
 class Dataset():
 
-    def __init__(self, path, batchSize = 100, train_ratio=0.8, normalize=True, padding=True):
+    def __init__(self, path, batchSize = 100, train_ratio=0.8, normalize=True, padding=True, maxLength=0, imputeForward=False):
         self.path = path
         self.batchSize = batchSize
         self.normalize = normalize
@@ -28,9 +28,6 @@ class Dataset():
         self.test_files = self.input_files[self.train_size+self.val_size:]
         assert len(self.test_files)==self.test_size
         
-        #Max length across all datasets = 336. 
-        #Setting min maxLength=336 for traindata for now!!
-        #TODO: Find max of max lengths across all datasets and use that for setting this maxLength
         self.train_data = data.Data(path, 
                                     files=self.train_files, 
                                     batchSize = self.batchSize, 
@@ -39,7 +36,8 @@ class Dataset():
                                     padding=self.padding, 
                                     mean = None, 
                                     std = None, 
-                                    maxLength=336)
+                                    maxLength=maxLength,
+                                    imputeForward=imputeForward)
         
         self.val_data = data.Data(path,
                                     files=self.val_files,
@@ -49,7 +47,8 @@ class Dataset():
                                     padding=self.padding,
                                     mean=self.train_data.mean,
                                     std=self.train_data.std,
-                                    maxLength=self.train_data.maxLength)
+                                    maxLength=self.train_data.maxLength,
+                                    imputeForward=imputeForward)
 
         self.test_data = data.Data(path,
                                     files=self.test_files,
@@ -59,7 +58,8 @@ class Dataset():
                                     padding=self.padding,
                                     mean=self.train_data.mean,
                                     std=self.train_data.std,
-                                    maxLength=self.train_data.maxLength)
+                                    maxLength=self.train_data.maxLength,
+                                    imputeForward=imputeForward)
 
     
         
