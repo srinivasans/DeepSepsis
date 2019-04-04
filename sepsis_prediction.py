@@ -2,12 +2,12 @@
 Author: Srinivasan Sivanandan
 """
 import sys
-sys.path.append("..")
+sys.path.append('datautils')
 import argparse
 import os
 import tensorflow as tf
-from datautils import readData
-import GRUD, LSTM
+from datautils import dataset
+from prediction import GRUD, LSTM
 
 
 '''
@@ -32,7 +32,7 @@ args.threshold=0.5
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Arguments for sepsis prediction')
     parser.add_argument('--batch-size', type=int, default=100)
-    parser.add_argument('--data-path', type=str, default="../../data/train")
+    parser.add_argument('--data-path', type=str, default="data/sepsis_data")
     parser.add_argument('--model-path', type=str, default=None)
     parser.add_argument('--result-path', type=str, default='results')
     parser.add_argument('--lr', type=float, default=0.001)
@@ -49,6 +49,8 @@ if __name__ == '__main__':
     parser.add_argument('--celltype', type=str, default='GRUD')
     parser.add_argument('--experiment', type=str, default='GRUD')
     parser.add_argument('--threshold', type=float, default=0.5)
+    parser.add_argument('--impute-forward', type=int, default=0)
+
 
     args = parser.parse_args()
 
@@ -56,6 +58,11 @@ if __name__ == '__main__':
             args.normalize=False
     if args.normalize==1:
             args.normalize=True
+
+    if args.impute_forward==0:
+            args.impute_forward=False
+    if args.impute_forward==1:
+            args.impute_forward=True
 
     checkdir=args.checkpoint_dir
     logdir=args.log_dir
@@ -66,33 +73,16 @@ if __name__ == '__main__':
     args.checkpoint_dir=os.path.join(checkdir, args.experiment)
     args.log_dir=os.path.join(logdir,args.experiment)
 
-    train_data=readData.ReadData(path=args.data_path,
-                                batchSize=args.batch_size,
-                                isTrain=True,
-                                normalize=args.normalize,
-                                padding=True,
-                                mean = None,
-                                std = None)
-
-    validation_data=readData.ReadData(path=args.data_path.replace("train","validation"),
+    #Max length across all datasets = 336. 
+    #Setting min maxLength=336 for traindata for now!!
+    #TODO: Find max of max lengths across all datasets and use that for setting this maxLength
+    dataset=dataset.Dataset(path=args.data_path,
                             batchSize=args.batch_size,
-                            isTrain=False,
+                            train_ratio=0.8,
                             normalize=args.normalize,
                             padding=True,
-                            mean=train_data.mean,
-                            std=train_data.std,
-                            maxLength=train_data.maxLength)
-
-
-    test_data=readData.ReadData(path=args.data_path.replace("train","test"),
-                            batchSize=args.batch_size,
-                            isTrain=False,
-                            normalize=args.normalize,
-                            padding=True,
-                            mean=train_data.mean,
-                            std=train_data.std,
-                            maxLength=train_data.maxLength)
-
+                            maxLength=336,
+                            imputeForward=args.impute_forward)
 
     lrs=[0.001]
     for lr in lrs:
@@ -105,14 +95,15 @@ if __name__ == '__main__':
             if args.celltype == "LSTM":
                 model = LSTM.lstm(sess,
                                   args=args,
-                                  train_data=train_data,
-                                  validation_data=validation_data,
-                                  test_data=test_data)
+                                  train_data=dataset.train_data,
+                                  validation_data=dataset.val_data,
+                                  test_data=dataset.test_data)
             else:
                 model = GRUD.grud(sess,
                                   args=args,
-                                  train_data=train_data,
-                                  test_data=test_data)
+                                  train_data=dataset.train_data,
+                                  validation_data=dataset.val_data,
+                                  test_data=dataset.test_data)
 
             # build computational graph
             model.build()
