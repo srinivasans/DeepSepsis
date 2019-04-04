@@ -105,3 +105,7 @@ venv.bak/
 # mypy
 .mypy_cache/
 .vscode/launch.json
+
+prediction/GRUDModel/model
+prediction/GRUDModel/results
+prediction/GRUDModel/tb_logs

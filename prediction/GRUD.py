@@ -228,7 +228,7 @@ class grud():
         while epochcount<self.epochs:
             tf.local_variables_initializer().run()
             dataset.shuffle()
-            for train_x,train_y,train_m,train_delta,train_xlen,y_mask,utp,ufp,ufn,files in dataset.getNextBatch():
+            for train_x,train_y,train_m,train_delta,train_xlen,y_mask,utp,ufp,ufn,files,t in dataset.getNextBatch():
                 _,loss,summary_str,acc,_, cr = self.sess.run([self.train_op, self.loss, self.sum, self.accuracy, self.metric_op, self.class_ratio], feed_dict={
                     self.x: train_x,
                     self.y: train_y,
@@ -283,7 +283,7 @@ class grud():
             self.load_model(test_epoch, checkpoint_dir)
 
         tf.local_variables_initializer().run()
-        for test_x,test_y,test_m,test_delta,test_xlen,y_mask,utp,ufp,ufn,files  in dataset.getNextBatch():
+        for test_x,test_y,test_m,test_delta,test_xlen,y_mask,utp,ufp,ufn,files,t  in dataset.getNextBatch():
             summary_str,acc,pred,val_loss = self.sess.run([self.sum, self.accuracy,self.output, self.loss], feed_dict={
                 self.x: test_x,
                 self.y: test_y,

@@ -4,7 +4,7 @@ Author: Srinivasan Sivanandan
 '''
 import os
 import numpy as np
-import datum
+from .data import Data
 
 class Dataset():
 
@@ -29,40 +29,40 @@ class Dataset():
         assert len(self.test_files)==self.test_size
         
         print("Processing train data...")
-        self.train_data = datum.Data(path, 
-                                    files=self.train_files, 
-                                    batchSize = self.batchSize, 
-                                    isTrain=True, 
-                                    normalize=self.normalize, 
-                                    padding=self.padding, 
-                                    mean = None, 
-                                    std = None, 
-                                    maxLength=maxLength,
-                                    imputeForward=imputeForward)
+        self.train_data = Data(path, 
+                                files=self.train_files, 
+                                batchSize = self.batchSize, 
+                                isTrain=True, 
+                                normalize=self.normalize, 
+                                padding=self.padding, 
+                                mean = None, 
+                                std = None, 
+                                maxLength=maxLength,
+                                imputeForward=imputeForward)
         
         print("Processing val data...")
-        self.val_data = datum.Data(path,
-                                    files=self.val_files,
-                                    batchSize=self.batchSize,
-                                    isTrain=False,
-                                    normalize=self.normalize,
-                                    padding=self.padding,
-                                    mean=self.train_data.mean,
-                                    std=self.train_data.std,
-                                    maxLength=self.train_data.maxLength,
-                                    imputeForward=imputeForward)
+        self.val_data = Data(path,
+                                files=self.val_files,
+                                batchSize=self.batchSize,
+                                isTrain=False,
+                                normalize=self.normalize,
+                                padding=self.padding,
+                                mean=self.train_data.mean,
+                                std=self.train_data.std,
+                                maxLength=self.train_data.maxLength,
+                                imputeForward=imputeForward)
 
         print("Processing test data...")
-        self.test_data = datum.Data(path,
-                                    files=self.test_files,
-                                    batchSize=self.batchSize,
-                                    isTrain=False,
-                                    normalize=self.normalize,
-                                    padding=self.padding,
-                                    mean=self.train_data.mean,
-                                    std=self.train_data.std,
-                                    maxLength=self.train_data.maxLength,
-                                    imputeForward=imputeForward)
+        self.test_data = Data(path,
+                                files=self.test_files,
+                                batchSize=self.batchSize,
+                                isTrain=False,
+                                normalize=self.normalize,
+                                padding=self.padding,
+                                mean=self.train_data.mean,
+                                std=self.train_data.std,
+                                maxLength=self.train_data.maxLength,
+                                imputeForward=imputeForward)
 
     
         

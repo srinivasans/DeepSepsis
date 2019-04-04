@@ -117,6 +117,7 @@ class Data():
             m_values = self.m
             delta_values = self.timeDelay
             y_values = self.y
+            times_values = self.times
             self.x = np.full([x_values.shape[0], self.maxLength, self.nX], np.nan)
             self.m = np.full([m_values.shape[0], self.maxLength, self.nX], np.nan)
             self.timeDelay = np.full([delta_values.shape[0], self.maxLength, self.nX], np.nan)
@@ -125,6 +126,7 @@ class Data():
             self.UTP = np.zeros([y_values.shape[0], self.maxLength])
             self.UFN = np.zeros([y_values.shape[0], self.maxLength])
             self.UFP = np.zeros([y_values.shape[0], self.maxLength])
+            self.times = np.full([times_values.shape[0], self.maxLength], np.nan)
             
             for i in range(0, x_values.shape[0]):
                 assert x_values[i].shape[1]==self.nX
@@ -132,6 +134,7 @@ class Data():
                 self.m[i,0:m_values[i].shape[0],:] = m_values[i][:,:]
                 self.timeDelay[i,0:delta_values[i].shape[0],:] = delta_values[i][:,:]
                 self.y[i,0:y_values[i].shape[0]] = y_values[i]
+                self.times[i,0:times_values[i].shape[0]] = times_values[i]
 
                 # Create y-mask
                 self.y_mask[i,y_values[i].shape[0]:] = 0
@@ -187,6 +190,7 @@ class Data():
         self.m = np.nan_to_num(self.m)
         self.timeDelay = np.nan_to_num(self.timeDelay)
         self.y = np.nan_to_num(self.y)
+        self.times = np.nan_to_num(self.times)
         
         
     def getMean(self):

@@ -12,7 +12,7 @@ import numpy as np
 from sklearn.metrics import roc_auc_score, confusion_matrix
 
 from prediction.GRUDModel.models import create_grud_model, load_grud_model
-from prediction.GRUDModel.nn_utils.callbacks import ModelCheckpointwithBestWeights
+from prediction.GRUDModel.callbacks import ModelCheckpointwithBestWeights
 from datautils.dataset import Dataset
 
 #%%
@@ -28,7 +28,7 @@ if K.backend() == 'tensorflow':
 # parse arguments
 ## general
 arg_parser = argparse.ArgumentParser()
-arg_parser.add_argument('--working_path', default='prediction/GRUDModel')
+arg_parser.add_argument('--working_path', default='prediction\GRUDModel')
 
 ## data
 arg_parser.add_argument('dataset_name', default='physionet',
@@ -67,11 +67,11 @@ else:
 print('Arguments:', ARGS)
 
 #%%
-dataset = Dataset("path???",
-                batchSize=100,
-                train_ratio=0.8,
-                normalize=True,
-                padding=True)
+dataset = Dataset("data/sepsis_data",
+                    batchSize=100,
+                    train_ratio=0.8,
+                    normalize=True,
+                    padding=True)
 
 #%%
 def roc_auc_score_mod(y_true, y_pred):
@@ -202,7 +202,7 @@ for (ty, py, _) in processed_list:
     print('-'*20)
     c_m = confusion_matrix(ty, np.array(py > 0.5).astype(int))
     print(c_m)
-    PPV = c_m[1,1] / c_m[1,1] + c_m[0,1]
+    PPV = c_m[1,1] / (c_m[1,1] + c_m[0,1])
     print(f"PPV/Precision = {PPV}")
     TPR = c_m[1,1] / c_m[1].sum()
     print(f"TPR/Sensitivity/Recall = {TPR}")
