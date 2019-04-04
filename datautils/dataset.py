@@ -28,6 +28,7 @@ class Dataset():
         self.test_files = self.input_files[self.train_size+self.val_size:]
         assert len(self.test_files)==self.test_size
         
+        print("Processing train data...")
         #Max length across all datasets = 336. 
         #Setting min maxLength=336 for traindata for now!!
         #TODO: Find max of max lengths across all datasets and use that for setting this maxLength
@@ -41,6 +42,7 @@ class Dataset():
                                     std = None, 
                                     maxLength=336)
         
+        print("Processing val data...")
         self.val_data = data.Data(path,
                                     files=self.val_files,
                                     batchSize=self.batchSize,
@@ -51,6 +53,7 @@ class Dataset():
                                     std=self.train_data.std,
                                     maxLength=self.train_data.maxLength)
 
+        print("Processing test data...")
         self.test_data = data.Data(path,
                                     files=self.test_files,
                                     batchSize=self.batchSize,

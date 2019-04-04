@@ -45,6 +45,9 @@ class Data():
         self.UFN = []
         self.UFP = []
 
+        self.input_dim = self.nX
+        self.output_dim = 1
+
         # Aggregate variables
         self.maxLength = maxLength # Count for padding using mini-batches
 
