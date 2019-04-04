@@ -4,7 +4,7 @@ Author: Srinivasan Sivanandan
 '''
 import os
 import numpy as np
-import data
+import datum
 
 class Dataset():
 
@@ -29,7 +29,7 @@ class Dataset():
         assert len(self.test_files)==self.test_size
         
         print("Processing train data...")
-        self.train_data = data.Data(path, 
+        self.train_data = datum.Data(path, 
                                     files=self.train_files, 
                                     batchSize = self.batchSize, 
                                     isTrain=True, 
@@ -41,7 +41,7 @@ class Dataset():
                                     imputeForward=imputeForward)
         
         print("Processing val data...")
-        self.val_data = data.Data(path,
+        self.val_data = datum.Data(path,
                                     files=self.val_files,
                                     batchSize=self.batchSize,
                                     isTrain=False,
@@ -53,7 +53,7 @@ class Dataset():
                                     imputeForward=imputeForward)
 
         print("Processing test data...")
-        self.test_data = data.Data(path,
+        self.test_data = datum.Data(path,
                                     files=self.test_files,
                                     batchSize=self.batchSize,
                                     isTrain=False,

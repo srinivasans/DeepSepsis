@@ -37,8 +37,10 @@ class grud():
                 sess,
                 args,
                 train_data,
+                validation_data,
                 test_data):
         self.train_data = train_data
+        self.validation_data = validation_data
         self.test_data = test_data
         self.lr = args.lr
         self.batch_size = args.batch_size
@@ -134,8 +136,7 @@ class grud():
     def build(self):
         self.pred = self.RNN(self.x, self.m, self.delta, self.mean, self.x_lengths)
         self.output = tf.nn.sigmoid(self.pred)
-        #self.neg, self.output = tf.split(self.output, [1,1], -1)
-
+        
         positive_class = tf.reduce_sum(tf.cast((self.y>0.5), dtype=tf.float32))
         padding = tf.reduce_sum(tf.cast((self.y_mask<0.5), dtype=tf.float32))
         negative_class = tf.reduce_sum(tf.cast((self.y<0.5), dtype=tf.float32))-padding
@@ -149,9 +150,6 @@ class grud():
         self.normalized_utility = (self.utility-self.u_nopred)/(self.u_optimal-self.u_nopred)
 
 
-        # self.target = tf.cast(tf.reshape(self.y,[-1,self.n_steps]),tf.int32)
-        # self.ymask = tf.reshape(self.y_mask*(self.utp-self.ufp-self.ufn),[-1,self.n_steps]) #    
-        
         self.act = tf.nn.weighted_cross_entropy_with_logits(targets=self.y, logits=self.pred, pos_weight=self.class_ratio)
         #self.act = self.utility
         self.act = self.y_mask*self.act
@@ -184,7 +182,10 @@ class grud():
         uopt_sum = tf.summary.scalar("Utility Optimal", self.u_nopred)
 
         self.sum=tf.summary.merge([loss_sum, acc_sum, tp_sum, tpr_sum, fpr_sum, fp_sum, utility_sum, norm_utility_sum, unopred_sum, uopt_sum])
-        self.board = tf.summary.FileWriter(self.log_dir,self.sess.graph)
+        
+        self.train_board = tf.summary.FileWriter(self.log_dir + "-train" , self.sess.graph)
+        self.val_board = tf.summary.FileWriter(self.log_dir + "-val", self.sess.graph)
+
     
     def load_model(self, epoch, checkpoint_dir=None):
         import re
@@ -222,6 +223,7 @@ class grud():
         idx = 0
         epochcount=0
         dataset=self.train_data
+        val_counter=0
         counter = 0
         while epochcount<self.epochs:
             tf.local_variables_initializer().run()
@@ -242,18 +244,15 @@ class grud():
                     self.isTrain:True
                 })
                 counter += 1
-                self.board.add_summary(summary_str, counter)
+                self.train_board.add_summary(summary_str, counter)
             epochcount+=1
             
             if epochcount%1==0:
                 self.save_model(epochcount, epochcount)
-            auc = 0.0
-            val_loss = 0.0
-            acc = 0.0
-            test_counter = (epochcount-1)*counter/epochcount
-            acc,auc,val_loss=self.test(counter=test_counter)
+            
+            acc, auc, val_loss, tp, fp, tn, fn, val_counter = self.test(counter=val_counter)
             print("epoch is : %2.2f, Accuracy: %.8f, AUC: %.8f, TrainLoss: %.8f, ValLoss: %.8f, CR: %.8f" % (epochcount, acc, auc, loss, val_loss, cr))
-        return auc
+        return auc, tp, fp, tn. fn
 
     def save_output(self,predictions,filenames):
         for i in range(0,len(predictions)):
@@ -266,7 +265,12 @@ class grud():
                 for j in range(0, len(predictions[i])):
                     f.write(str(predictions[i][j][0])+'|'+str(int(predictions[i][j][0]>self.threshold))+'\n')
 
-    def test(self, checkpoint_dir=None, test_epoch=100, generate_files=False,counter=0):
+    def test(self, counter=None, val=True, checkpoint_dir=None, test_epoch=100, generate_files=False):
+        if val:
+            dataset = self.validation_data
+        else: #test
+            dataset = self.test_data
+        
         start_time=time.time()
         dataset = self.test_data
         dataset.shuffle()
@@ -294,6 +298,9 @@ class grud():
                 self.keep_prob:1.0,
                 self.isTrain:False
             })
+            if val:
+                counter += 1
+                self.val_board.add_summary(summary_str, counter)
             # Remove padding for accuracy and AUC calculation
             for i in range(0,test_xlen.shape[0]):
                 target.extend(list(test_y[i, 0:test_xlen[i]]))
@@ -307,7 +314,11 @@ class grud():
         auc = metrics.roc_auc_score(np.array(target),np.array(predictions))
         predictions = np.array(np.array(predictions)>self.threshold).astype(int)
         acc = metrics.accuracy_score(np.array(target),np.array(predictions))
+        tn, fp, fn, tp = metrics.confusion_matrix(target, predictions).ravel()
         # Also compute utility score
-        return acc, auc, val_loss
+        if val:
+            return acc, auc, val_loss, tp, fp, tn, fn, counter
+        else:
+            return acc, auc, tp, fp, tn, fn, tp/(tp+fn), tn/(tn+fp)
 
     
