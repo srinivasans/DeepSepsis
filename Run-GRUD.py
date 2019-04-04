@@ -71,7 +71,8 @@ dataset = Dataset("data/sepsis_data",
                     batchSize=100,
                     train_ratio=0.8,
                     normalize=True,
-                    padding=True)
+                    padding=True,
+                    imputeForward=True)
 
 #%%
 def roc_auc_score_mod(y_true, y_pred):
