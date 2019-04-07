@@ -21,7 +21,7 @@ class Dataset():
         self.dataset_size = len(self.input_files)
         self.train_size = int(np.round(self.dataset_size*train_ratio))
         self.val_size = int(np.round(self.dataset_size*(1.0-train_ratio)/2.0))
-        self.test_size = int(np.round(self.dataset_size*(1.0-train_ratio)/2.0))
+        self.test_size = self.dataset_size - self.train_size - self.val_size
 
         self.train_files = self.input_files[0:self.train_size]
         self.val_files = self.input_files[self.train_size:self.train_size+self.val_size]

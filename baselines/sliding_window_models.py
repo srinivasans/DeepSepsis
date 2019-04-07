@@ -1,7 +1,7 @@
 import os, sys
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
+from datautils import dataset
+import numpy as np 
 import sklearn 
 from sklearn.metrics import roc_auc_score, f1_score, confusion_matrix, precision_score, recall_score, roc_curve
 
@@ -170,7 +170,6 @@ def predict(model, model_type, window_size, impute_method):
         
     return np.array(X_test), np.array(y_test)
 
-
 def train_predict(model, model_label):
 
     # Model Label, WS, imp. method, train score, train recall, train prec, test score, test auc, test recall, test prec
@@ -202,6 +201,17 @@ def train_predict(model, model_label):
             
     return np.array(results)
 
+
+datasets = dataset.Dataset('../sepsis_data/all_data', train_ratio=0.8, maxLength=336)
+
+X_train, y_train = datasets.train_data.x, datasets.train_data.y 
+train_lengths = datasets.train_data.x_lengths
+
+X_valid, y_valid = datasets.val_data.x, datasets.val_data.y
+val_lengths = datasets.val_data.x_lengths
+
+X_test, y_test = datasets.test_data.x, datasets.test_data.y
+test_lengths = datasets.test_data.x_lengths
 
 from sklearn.linear_model import LogisticRegression, LogisticRegressionCV
 
