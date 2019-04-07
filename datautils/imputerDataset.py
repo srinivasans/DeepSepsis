@@ -4,7 +4,7 @@ Author: Srinivasan Sivanandan
 '''
 import os
 import numpy as np
-import imputerData
+from .imputerData import ImputerData
 
 class Dataset():
 
@@ -31,7 +31,7 @@ class Dataset():
         #Max length across all datasets = 336. 
         #Setting min maxLength=336 for traindata for now!!
         #TODO: Find max of max lengths across all datasets and use that for setting this maxLength
-        self.train_data = imputerData.ImputerData(path, 
+        self.train_data = ImputerData(path, 
                                     files=self.train_files, 
                                     batchSize = self.batchSize, 
                                     isTrain=True, 
@@ -41,7 +41,7 @@ class Dataset():
                                     std = None, 
                                     maxLength=336)
         
-        self.val_data = imputerData.ImputerData(path,
+        self.val_data = ImputerData(path,
                                     files=self.val_files,
                                     batchSize=self.batchSize,
                                     isTrain=False,
@@ -51,7 +51,7 @@ class Dataset():
                                     std=self.train_data.std,
                                     maxLength=self.train_data.maxLength)
 
-        self.test_data = imputerData.ImputerData(path,
+        self.test_data = ImputerData(path,
                                     files=self.test_files,
                                     batchSize=self.batchSize,
                                     isTrain=False,
