@@ -15,6 +15,7 @@ class Dataset():
         self.padding = padding
         self.input_files = np.array(os.listdir(self.path))
         self.dataset_size = len(self.input_files)
+        self.seed = seed
          
         self.train_size = int(np.round(self.dataset_size*train_ratio))
         self.val_size = int(np.round(self.dataset_size*(1.0-train_ratio)/2.0))

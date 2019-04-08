@@ -7,7 +7,7 @@ import argparse
 import os
 import tensorflow as tf
 from datautils import dataset
-from prediction import GRUD, LSTM
+from prediction import GRU, GRUM, GRUD, LSTM
 
 
 '''
@@ -46,16 +46,14 @@ if __name__ == '__main__':
                         help='Directory name to save training logs')
     parser.add_argument('--normalize',type=int,default=1)
     parser.add_argument('--dropout-rate',type=float,default=0.8)
-    parser.add_argument('--celltype', type=str, default='GRUD')
-    parser.add_argument('--experiment', type=str, default='GRUD')
+    parser.add_argument('--celltype', type=str, default='GRUM')
+    parser.add_argument('--experiment', type=str, default='GRUM')
     parser.add_argument('--threshold', type=float, default=0.5)
     parser.add_argument('--impute-forward', type=int, default=0)
     parser.add_argument('--calculate-delay', type=int, default=1)
     parser.add_argument('--imputation-method', type=str, default='mean')
     parser.add_argument('--early-stopping-patience', type=int, default=5)
     parser.add_argument('--seed', type=int, default=42)
-
-
 
     args = parser.parse_args()
 
@@ -113,13 +111,24 @@ if __name__ == '__main__':
                                   train_data=dataset.train_data,
                                   validation_data=dataset.val_data,
                                   test_data=dataset.test_data)
-            else:
-                model = GRUD.grud(sess,
+            elif args.celltype == "GRU":
+                model = GRU.GRU(sess,
                                   args=args,
                                   train_data=dataset.train_data,
                                   validation_data=dataset.val_data,
                                   test_data=dataset.test_data)
-
+            elif args.celltype == "GRUM":
+                model = GRUM.GRUM(sess,
+                                  args=args,
+                                  train_data=dataset.train_data,
+                                  validation_data=dataset.val_data,
+                                  test_data=dataset.test_data)
+            elif args.celltype == "GRUD":
+                model = GRUD.GRUD(sess,
+                                  args=args,
+                                  train_data=dataset.train_data,
+                                  validation_data=dataset.val_data,
+                                  test_data=dataset.test_data)
             # build computational graph
             model.build()
 

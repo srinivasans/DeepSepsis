@@ -85,7 +85,6 @@ class RNNModel():
         return "{}_{}_{}_{}/epoch{}".format(self.experiment, self.lr,
                                             self.batch_size, self.normalize, epoch)
     
-    @abstractmethod
     def RNN(self):
         return None
     

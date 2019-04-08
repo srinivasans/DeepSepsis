@@ -1,4 +1,15 @@
-from . import RNNModel
+import sys
+sys.path.append("..")
+import tensorflow as tf
+from RNNCell import GRUDCell
+from tensorflow.python.ops import math_ops
+from tensorflow.python.ops import nn_ops
+import time
+from sklearn import metrics
+import numpy as np
+import os
+from datautils import helper
+from .RNNModel import RNNModel
 
 class GRUM(RNNModel):
     '''
