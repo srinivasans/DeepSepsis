@@ -50,6 +50,7 @@ if __name__ == '__main__':
     parser.add_argument('--experiment', type=str, default='GRUD')
     parser.add_argument('--threshold', type=float, default=0.5)
     parser.add_argument('--impute-forward', type=int, default=0)
+    parser.add_argument('--calculate-delay', type=int, default=1)
     parser.add_argument('--imputation_method', type=str, default='mean')
     parser.add_argument('--seed', type=int, default=42)
 
@@ -61,6 +62,11 @@ if __name__ == '__main__':
             args.normalize=False
     elif args.normalize==1:
             args.normalize=True
+
+    if args.calculate_delay==0:
+            args.calculate_delay=False
+    elif args.calculate_delay==1:
+            args.calculate_delay=True
 
     if args.imputation_method=='forward':
         args.impute_forward=True
@@ -88,7 +94,8 @@ if __name__ == '__main__':
                             normalize=args.normalize,
                             padding=True,
                             maxLength=336,
-                            imputeForward=args.impute_forward)
+                            imputeForward=args.impute_forward,
+                            calculateDelay=args.calculate_delay)
 
     lrs=[0.001]
     for lr in lrs:

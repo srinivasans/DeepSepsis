@@ -8,7 +8,11 @@ import random
 
 class Data():
 
-    def __init__(self, path, files, batchSize = 100, isTrain=True, normalize=True, padding=True, mean = None, std = None, maxLength=0, imputeForward=False):
+    def __init__(self, path, files, batchSize = 100, 
+                isTrain=True, normalize=True, padding=True, 
+                mean = None, std = None, maxLength=0, 
+                imputeForward=False, calculateDelay=True):
+                
         # Phase parameters
         self.path=path
         self.files = files
@@ -17,6 +21,7 @@ class Data():
         self.padding = padding
         self.batchSize = batchSize
         self.imputeForward = imputeForward
+        self.calculateDelay = calculateDelay
 
         # Sepsis specific parameters
         self.features = {'HR':0, 'O2Sat':1, 'Temp':2,
@@ -75,12 +80,14 @@ class Data():
 
         values = values[:,0:self.nX]
         delay = np.zeros(values.shape)
-        for j in range(0, values.shape[1]):
-            for i in range(1, values.shape[0]):
-                if(np.isnan(values[i,j])):
-                    delay[i,j] = times[i]-times[i-1]+delay[i-1,j]
-                else:
-                    delay[i,j] = times[i]-times[i-1]
+
+        if self.calculateDelay:
+            for j in range(0, values.shape[1]):
+                for i in range(1, values.shape[0]):
+                    if(np.isnan(values[i,j])):
+                        delay[i,j] = times[i]-times[i-1]+delay[i-1,j]
+                    else:
+                        delay[i,j] = times[i]-times[i-1]
 
         indicator = np.array(~np.isnan(values)).astype(int)
         return values, target, indicator, times, delay
