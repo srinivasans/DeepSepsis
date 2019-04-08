@@ -5,6 +5,7 @@ Author: Srinivasan Sivanandan
 import os
 import numpy as np
 import random
+from tqdm import tqdm
 
 class Data():
 
@@ -100,7 +101,8 @@ class Data():
         self.timeDelay = []
         self.times = []
         self.x_lengths = []
-        for input_file in self.files:
+        print("* Reading data...")
+        for input_file in tqdm(self.files):
             x,y,m,t,d = self.readFile(input_file)
             self.x.append(x)
             self.y.append(y)
@@ -133,7 +135,8 @@ class Data():
         self.UFP = np.zeros([y_values.shape[0], self.maxLength])
         self.times = np.full([times_values.shape[0], self.maxLength], np.nan)
         
-        for i in range(0, x_values.shape[0]):
+        print("* Processing data...")
+        for i in tqdm(range(0, x_values.shape[0])):
             assert x_values[i].shape[1]==self.nX
             self.x[i,0:x_values[i].shape[0],:] = x_values[i][:,:]
             self.m[i,0:m_values[i].shape[0],:] = m_values[i][:,:]
@@ -183,7 +186,8 @@ class Data():
         
         if self.imputeForward:
             # For each patient
-            for i in range(0, self.x.shape[0]):
+            print("* Imputing Forward...")
+            for i in tqdm(range(0, self.x.shape[0])):
                 # For each feature
                 for k in range(0, self.x.shape[2]):
                     # For each time step - from time 2
@@ -199,6 +203,7 @@ class Data():
 
         # Remove padding if padding is False
         if not self.padding:
+            print("* Unpadding...")
             num_patients = self.x.shape[0]
             x_values = self.x
             y_values = self.y
@@ -219,7 +224,8 @@ class Data():
             self.UFN = []
             self.UFP = []
             self.times = []
-            for i in range(0,num_patients):
+            
+            for i in tqdm(range(0,num_patients)):
                 self.x.append(x_values[i,0:self.x_lengths[i],:])
                 self.m.append(m_values[i,0:self.x_lengths[i],:])
                 self.timeDelay.append(timeDelay_values[i,0:self.x_lengths[i],:]) 

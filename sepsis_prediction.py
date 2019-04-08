@@ -8,7 +8,11 @@ import os
 import tensorflow as tf
 from datautils import dataset
 from prediction import GRU, GRUM, GRUD, LSTM
-
+import warnings
+import pytest
+warnings.filterwarnings("ignore")
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+tf.logging.set_verbosity(tf.logging.ERROR)
 
 '''
 args.batch_size=100
@@ -82,8 +86,12 @@ if __name__ == '__main__':
     max_auc = 0.0
 
     args.checkpoint_dir=os.path.join(checkdir, args.experiment)
-    args.log_dir=os.path.join(logdir,args.experiment)
+    args.log_dir=os.path.join(logdir,args.experiment, args.imputation_method, ('_').join(['seed',str(args.seed)]))
 
+    print("Experiment : %s, Cell Type : %s,  Imputation : %s, Seed : %d"%(args.experiment, 
+                                                                        args.celltype,
+                                                                        args.imputation_method,
+                                                                        args.seed))
     #Max length across all datasets = 336. 
     #Setting min maxLength=336 for traindata for now!!
     #TODO: Find max of max lengths across all datasets and use that for setting this maxLength
@@ -100,7 +108,7 @@ if __name__ == '__main__':
     lrs=[0.001]
     for lr in lrs:
         args.lr=lr
-        print("epoch: %2d"%(args.epochs))
+        print("max epochs: %2d"%(args.epochs))
         tf.reset_default_graph()
         config = tf.ConfigProto()
         config.gpu_options.allow_growth = True
@@ -133,18 +141,21 @@ if __name__ == '__main__':
             model.build()
 
             # Train model - (Internally validate the model on test set)
-            auc, tp, fp, tn, fn = model.train()
-            if auc > max_auc:
-                max_auc = auc
+            max_auc, best_epoch = model.train()
 
-            test_acc, test_auc, test_tp, test_fp, test_tn, test_fn, sens, spec = model.test(val=False)
+            # Reproducing validation results from best epoch            
+            val_acc, val_auc, val_loss, val_tp, val_fp, val_tn, val_fn, val_counter = model.test(val=True, test_epoch=best_epoch, load_checkpoint=True)
+            print(val_auc)
+            assert val_auc == pytest.approx(max_auc)
+            
+            # Test model and generate results for test data
+            test_acc, test_auc, test_tp, test_fp, test_tn, test_fn, test_sens, test_spec = model.test(val=False, test_epoch=best_epoch, generate_files=True, load_checkpoint=True)
 
-    print("max auc is: " + str(max_auc))
-    f2 = open(('_').join(["max_auc",args.experiment]),"w")
-    f2.write("val auc: {}".format(max_auc))
-    f2.write("\nval tp: {}, fp: {}, tn: {}, fn: {}".format(tp, fp, tn, fn))
-    f2.write("\ntest auc: {}".format(test_auc))
-    f2.write("\ntest tp: {}, fp: {}, tn: {}, fn: {}".format(test_tp, test_fp, test_tn, test_fn))
-    f2.write("\ntest sensitivity: {}, specificity: {}".format(sens, spec))
-    f2.close()
+        result_file = open(os.path.join(args.result_path, args.experiment, args.imputation_method, ('_').join(['seed',str(args.seed)]), 'result.auc'),"w")
+        result_file.write("val auc: {}".format(max_auc))
+        result_file.write("\nval tp: {}, fp: {}, tn: {}, fn: {}".format(val_tp, val_fp, val_tn, val_fn))
+        result_file.write("\ntest auc: {}".format(test_auc))
+        result_file.write("\ntest tp: {}, fp: {}, tn: {}, fn: {}".format(test_tp, test_fp, test_tn, test_fn))
+        result_file.write("\ntest sensitivity: {}, specificity: {}".format(test_sens, test_spec))
+        result_file.close()
 

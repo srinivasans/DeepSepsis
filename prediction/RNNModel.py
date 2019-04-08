@@ -82,8 +82,8 @@ class RNNModel():
         self.sess = sess
 
     def getModelDir(self, epoch):
-        return "{}_{}_{}_{}/epoch{}".format(self.experiment, self.lr,
-                                            self.batch_size, self.normalize, epoch)
+        return "{}_{}_{}_{}/epoch{}".format(self.experiment, self.imputation_method,
+                                            self.seed, self.normalize, epoch)
     
     def RNN(self):
         return None
@@ -235,10 +235,10 @@ class RNNModel():
                 print("Early Stopping Training : Max AUC = %f , %d"%(max_auc, best_epoch))
                 break
 
-        return auc, tp, fp, tn, fn
+        return max_auc, best_epoch
 
 
-    def test(self, counter=None, val=True, checkpoint_dir=None, test_epoch=100, generate_files=False):
+    def test(self, counter=0, val=True, checkpoint_dir=None, test_epoch=100, generate_files=False, load_checkpoint=False):
         if val:
             dataset = self.validation_data
         else: #test
@@ -251,7 +251,7 @@ class RNNModel():
         test_files = []
         predictions_ind = []
 
-        if checkpoint_dir is not None:
+        if load_checkpoint:
             self.load_model(test_epoch, checkpoint_dir)
 
         tf.local_variables_initializer().run()

@@ -60,7 +60,8 @@ if __name__ == '__main__':
                             normalize=args.normalize,
                             padding=True,
                             maxLength=336,
-                            imputeForward=args.impute_forward)
+                            imputeForward=args.impute_forward,
+                            seed=args.seed)
 
     tf.reset_default_graph()
     config = tf.ConfigProto() 
@@ -77,5 +78,6 @@ if __name__ == '__main__':
         test_acc, test_auc, test_tp, test_fp, test_tn, test_fn, sens, spec = model.test(checkpoint_dir='checkpoint/GRUM_C_Mean_40k/GRUM_C_Mean_40k_0.001_100_True/epoch5', 
                                                                                 test_epoch=5, 
                                                                                 generate_files=True, 
-                                                                                val=False)
+                                                                                val=False,
+                                                                                load_checkpoint=True)
         print((test_acc, test_auc, test_tp, test_fp, test_tn, test_fn, sens, spec))

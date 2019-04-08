@@ -1,13 +1,11 @@
 """
 Author: Srinivasan Sivanandan
 """
-import sys
-sys.path.append("..")
 import argparse
 import os
 import tensorflow as tf
-from datautils import readDataImputation
-import DAEImpute
+from datautils import imputerDataset
+from imputation import DAEImpute
 
 
 '''
@@ -66,23 +64,11 @@ if __name__ == '__main__':
     args.checkpoint_dir=os.path.join(checkdir, args.experiment)
     args.log_dir=os.path.join(logdir,args.experiment)
 
-    train_data=readDataImputation.ReadData(path=args.data_path,
-                                batchSize=args.batch_size,
-                                isTrain=True,
-                                normalize=args.normalize,
-                                padding=True,
-                                mean = None,
-                                std = None)
-
-    test_data=readDataImputation.ReadData(path=args.data_path.replace("train","test"),
-                            batchSize=args.batch_size,
-                            isTrain=False,
-                            normalize=args.normalize,
-                            padding=True,
-                            mean=train_data.mean,
-                            std=train_data.std,
-                            maxLength=train_data.maxLength)
-
+    dataset=imputerDataset.Dataset(path=args.data_path,
+                                        batchSize=args.batch_size,
+                                        train_ratio=0.8, 
+                                        normalize=True, 
+                                        padding=True)
         
     lrs=[0.001]
     for lr in lrs:
@@ -94,8 +80,8 @@ if __name__ == '__main__':
         with tf.Session(config=config) as sess:
             model = DAEImpute.DAE(sess,
                             args=args,
-                            train_data=train_data,
-                            test_data=test_data)
+                            train_data=dataset.train_data,
+                            test_data=dataset.val_data)
 
             # build computational graph
             model.build()

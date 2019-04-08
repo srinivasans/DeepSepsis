@@ -10,6 +10,8 @@ import numpy as np
 import os
 from datautils import helper
 from .RNNModel import RNNModel
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+tf.logging.set_verbosity(tf.logging.ERROR)
 
 class GRUD(RNNModel):
     '''

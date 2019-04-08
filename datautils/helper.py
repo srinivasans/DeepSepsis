@@ -10,7 +10,7 @@ def create_test_folder(data='data/challenge_data', test_folder='data/challenge_t
 
 
 def save_output(predictions, filenames, result_path, experiment, imputation_method, seed=0, threshold=0.5):
-    folder = os.path.join(result_path,experiment,imputation_method,str(seed))
+    folder = os.path.join(result_path,experiment,imputation_method,('_').join(['seed',str(seed)]))
     if not os.path.exists(folder):
         os.makedirs(folder)
         
