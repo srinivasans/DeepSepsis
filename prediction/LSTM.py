@@ -61,6 +61,8 @@ class lstm():
         self.n_steps = train_data.maxLength
         self.threshold = args.threshold
         self.experiment = args.experiment
+        self.seed = args.seed
+        self.imputation_method = args.imputation_method
 
         self.x = tf.placeholder(tf.float32, [None, self.n_steps, self.n_inputs])
         self.y = tf.placeholder(tf.float32,
@@ -272,6 +274,10 @@ class lstm():
         self.saver.save(self.sess, os.path.join(checkpoint_dir,
                                                 self.experiment + '.model'),
                         global_step=step)
+    
+    def save_output(self,predictions,filenames):
+        helper.save_output(predictions,filenames,self.result_path,self.experiment, self.imputation_method, self.seed, self.threshold)
+    
 
     def train(self):
         tf.global_variables_initializer().run()
@@ -309,22 +315,6 @@ class lstm():
                 "epoch is : %2.2f, Accuracy: %.8f, AUC: %.8f, TrainLoss: %.8f, ValLoss: %.8f, CR: %.8f" % (
                 epochcount, acc, auc, loss, val_loss, cr))
         return auc, tp, fp, tn, fn
-
-    def save_output(self, predictions, targets, filenames):
-        files_pred_1 = []
-        for i in range(0, len(predictions)):
-            folder = os.path.join(self.result_path, self.experiment)
-            if not os.path.exists(folder):
-                os.makedirs(folder)
-            filename = os.path.join(folder, filenames[i])
-            with open(filename, 'w') as f:
-                f.write('PredictedProbability | PredictedLabel | Label\n')
-                for j in range(0, len(predictions[i])):
-                    f.write(str(predictions[i][j]) + ' | ' +
-                            str(int(predictions[i][j] > self.threshold)) + ' | ' +
-                            str(targets[i][j]) + '\n')
-                    if int(predictions[i][j] > self.threshold) and filename not in files_pred_1:
-                        files_pred_1.append(filename)
 
     def test(self, counter=None, val=True, checkpoint_dir=None, test_epoch=100, generate_files=False):
         if val:
@@ -369,8 +359,10 @@ class lstm():
                 predictions.extend(list(pred[i, 0:test_xlen[i]]))
                 predictions_ind.append(list(pred[i, 0:test_xlen[i]]))
                 test_files.append(files[i])
-            if not val:
-                self.save_output(predictions_ind, targets_ind, test_files)
+
+            if generate_files:
+                self.save_output(predictions_ind,test_files)
+
         auc = metrics.roc_auc_score(np.array(target), np.array(predictions))
         predictions = np.array(np.array(predictions) > self.threshold).astype(int)
         acc = metrics.accuracy_score(np.array(target), np.array(predictions))

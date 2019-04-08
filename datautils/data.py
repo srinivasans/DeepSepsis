@@ -78,10 +78,9 @@ class Data():
         for j in range(0, values.shape[1]):
             for i in range(1, values.shape[0]):
                 if(np.isnan(values[i,j])):
-                    delay[i] = times[i]-times[i-1]+delay[i-1,j]
+                    delay[i,j] = times[i]-times[i-1]+delay[i-1,j]
                 else:
-                    delay[i] = times[i]-times[i-1]
-                    
+                    delay[i,j] = times[i]-times[i-1]
 
         indicator = np.array(~np.isnan(values)).astype(int)
         return values, target, indicator, times, delay
@@ -112,57 +111,56 @@ class Data():
         self.times = np.array(self.times)
         self.timeDelay = np.array(self.timeDelay)
 
-        if self.padding:
-            x_values = self.x
-            m_values = self.m
-            delta_values = self.timeDelay
-            y_values = self.y
-            times_values = self.times
-            self.x = np.full([x_values.shape[0], self.maxLength, self.nX], np.nan)
-            self.m = np.full([m_values.shape[0], self.maxLength, self.nX], np.nan)
-            self.timeDelay = np.full([delta_values.shape[0], self.maxLength, self.nX], np.nan)
-            self.y = np.full([y_values.shape[0], self.maxLength], np.nan)
-            self.y_mask = np.ones([y_values.shape[0], self.maxLength])
-            self.UTP = np.zeros([y_values.shape[0], self.maxLength])
-            self.UFN = np.zeros([y_values.shape[0], self.maxLength])
-            self.UFP = np.zeros([y_values.shape[0], self.maxLength])
-            self.times = np.full([times_values.shape[0], self.maxLength], np.nan)
+        x_values = self.x
+        m_values = self.m
+        delta_values = self.timeDelay
+        y_values = self.y
+        times_values = self.times
+        self.x = np.full([x_values.shape[0], self.maxLength, self.nX], np.nan)
+        self.m = np.full([m_values.shape[0], self.maxLength, self.nX], np.nan)
+        self.timeDelay = np.full([delta_values.shape[0], self.maxLength, self.nX], np.nan)
+        self.y = np.full([y_values.shape[0], self.maxLength], np.nan)
+        self.y_mask = np.ones([y_values.shape[0], self.maxLength])
+        self.UTP = np.zeros([y_values.shape[0], self.maxLength])
+        self.UFN = np.zeros([y_values.shape[0], self.maxLength])
+        self.UFP = np.zeros([y_values.shape[0], self.maxLength])
+        self.times = np.full([times_values.shape[0], self.maxLength], np.nan)
+        
+        for i in range(0, x_values.shape[0]):
+            assert x_values[i].shape[1]==self.nX
+            self.x[i,0:x_values[i].shape[0],:] = x_values[i][:,:]
+            self.m[i,0:m_values[i].shape[0],:] = m_values[i][:,:]
+            self.timeDelay[i,0:delta_values[i].shape[0],:] = delta_values[i][:,:]
+            self.y[i,0:y_values[i].shape[0]] = y_values[i]
+            self.times[i,0:times_values[i].shape[0]] = times_values[i]
+
+            # Create y-mask
+            self.y_mask[i,y_values[i].shape[0]:] = 0
             
-            for i in range(0, x_values.shape[0]):
-                assert x_values[i].shape[1]==self.nX
-                self.x[i,0:x_values[i].shape[0],:] = x_values[i][:,:]
-                self.m[i,0:m_values[i].shape[0],:] = m_values[i][:,:]
-                self.timeDelay[i,0:delta_values[i].shape[0],:] = delta_values[i][:,:]
-                self.y[i,0:y_values[i].shape[0]] = y_values[i]
-                self.times[i,0:times_values[i].shape[0]] = times_values[i]
+            # Calculate Utility functions
+            self.UFP[i,:] = -0.025
+            pos = -1
+            for k in range(0,y_values[i].shape[0]):
+                if self.y[i,k]>0.5:
+                    pos=k
+                    break
+            
+            if pos>=0:
+                #self.y[i,pos-6:pos]=1 # Fill -12->-6
+                self.UFN[i,pos:pos+9]=np.array([-2.0*p/9.0 for p in range(0,np.min([9,self.maxLength-pos]))])
+                self.UFN[i,pos+9:]=-2.0
+                #self.UTP[i,0:pos-8]=-0.05 # Not required already taken care by FP
+                if pos<7:
+                    self.UTP[i,0:pos]=np.array([(7-pos+p)/7.0 for p in range(0,pos)])
+                else:   
+                    self.UTP[i,pos-6:pos+1]=np.array([p/7.0 for p in range(0,7)])
+                self.UTP[i,pos:pos+9]=np.array([1-(p/9.0) for p in range(0,np.min([9,self.maxLength-pos]))])
 
-                # Create y-mask
-                self.y_mask[i,y_values[i].shape[0]:] = 0
-                
-                # Calculate Utility functions
-                self.UFP[i,:] = -0.025
-                pos = -1
-                for k in range(0,y_values[i].shape[0]):
-                    if self.y[i,k]>0.5:
-                        pos=k
-                        break
-                
-                if pos>=0:
-                    #self.y[i,pos-6:pos]=1 # Fill -12->-6
-                    self.UFN[i,pos:pos+9]=np.array([-2.0*p/9.0 for p in range(0,np.min([9,self.maxLength-pos]))])
-                    self.UFN[i,pos+9:]=-2.0
-                    #self.UTP[i,0:pos-8]=-0.05 # Not required already taken care by FP
-                    if pos<7:
-                        self.UTP[i,0:pos]=np.array([(7-pos+p)/7.0 for p in range(0,pos)])
-                    else:   
-                        self.UTP[i,pos-6:pos+1]=np.array([p/7.0 for p in range(0,7)])
-                    self.UTP[i,pos:pos+9]=np.array([1-(p/9.0) for p in range(0,np.min([9,self.maxLength-pos]))])
-
-            self.y = np.reshape(self.y,(y_values.shape[0], self.maxLength,1))
-            self.y_mask = np.reshape(self.y_mask,(y_values.shape[0], self.maxLength,1))
-            self.UTP = np.reshape(self.UTP,(y_values.shape[0], self.maxLength,1))
-            self.UFN = np.reshape(self.UFN,(y_values.shape[0], self.maxLength,1))
-            self.UFP = np.reshape(self.UFP,(y_values.shape[0], self.maxLength,1))
+        self.y = np.reshape(self.y,(y_values.shape[0], self.maxLength,1))
+        self.y_mask = np.reshape(self.y_mask,(y_values.shape[0], self.maxLength,1))
+        self.UTP = np.reshape(self.UTP,(y_values.shape[0], self.maxLength,1))
+        self.UFN = np.reshape(self.UFN,(y_values.shape[0], self.maxLength,1))
+        self.UFP = np.reshape(self.UFP,(y_values.shape[0], self.maxLength,1))
 
         if self.isTrain:
             x_values = np.reshape(self.x, [-1, self.nX])
@@ -191,7 +189,50 @@ class Data():
         self.timeDelay = np.nan_to_num(self.timeDelay)
         self.y = np.nan_to_num(self.y)
         self.times = np.nan_to_num(self.times)
-        
+
+        # Remove padding if padding is False
+        if not self.padding:
+            num_patients = self.x.shape[0]
+            x_values = self.x
+            y_values = self.y
+            m_values = self.m
+            timeDelay_values = self.timeDelay
+            y_mask_values = self.y_mask
+            UTP_values = self.UTP
+            UFN_values = self.UFN
+            UFP_values = self.UFP
+            times_values = self.times
+
+            self.x = []
+            self.m = []
+            self.timeDelay = []
+            self.y = []
+            self.y_mask = []
+            self.UTP = []
+            self.UFN = []
+            self.UFP = []
+            self.times = []
+            for i in range(0,num_patients):
+                self.x.append(x_values[i,0:self.x_lengths[i],:])
+                self.m.append(m_values[i,0:self.x_lengths[i],:])
+                self.timeDelay.append(timeDelay_values[i,0:self.x_lengths[i],:]) 
+                self.y.append(y_values[i,0:self.x_lengths[i],:])
+                self.y_mask.append(y_mask_values[i,0:self.x_lengths[i],:]) 
+                self.UTP.append(UTP_values[i,0:self.x_lengths[i],:])
+                self.UFN.append(UFN_values[i,0:self.x_lengths[i],:])
+                self.UFP.append(UFP_values[i,0:self.x_lengths[i],:])
+                self.times.append(times_values[i,0:self.x_lengths[i]])
+
+            self.x = np.array(self.x)
+            self.m = np.array(self.m)
+            self.timeDelay = np.array(self.timeDelay)
+            self.y = np.array(self.y)
+            self.y_mask = np.array(self.y_mask)
+            self.UTP = np.array(self.UTP)
+            self.UFP = np.array(self.UFP)
+            self.UFN = np.array(self.UFN)
+            self.times = np.array(self.times)
+            
         
     def getMean(self):
         if self.normalize:

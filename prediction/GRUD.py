@@ -11,6 +11,7 @@ import time
 from sklearn import metrics
 import numpy as np
 import os
+from datautils import helper
 
 '''
 _,loss,summary_str,acc,_, cr,out = sess.run([model.train_op, model.loss, model.sum, model.accuracy, model.metric_op, model.class_ratio, model.output], feed_dict={
@@ -57,6 +58,8 @@ class grud():
         self.n_steps = train_data.maxLength
         self.threshold = args.threshold
         self.experiment = args.experiment
+        self.seed = args.seed
+        self.imputation_method = args.imputation_method
 
         self.x = tf.placeholder(tf.float32, [None, self.n_steps, self.n_inputs])
         self.y = tf.placeholder(tf.float32, [None, self.n_steps, self.n_classes])
@@ -141,7 +144,7 @@ class grud():
         padding = tf.reduce_sum(tf.cast((self.y_mask<0.5), dtype=tf.float32))
         negative_class = tf.reduce_sum(tf.cast((self.y<0.5), dtype=tf.float32))-padding
 
-        self.class_ratio = (70.0*negative_class)/((negative_class))  #- Change class ratio - left for experimentation
+        self.class_ratio = (55.6*negative_class)/((negative_class))  #- Change class ratio - left for experimentation
         
         self.utility = (self.y*self.output)*self.utp + (self.y*(1.0-self.output))*self.ufn + ((1.0-self.y)*self.output)*self.ufp
         self.utility= tf.reduce_sum(self.y_mask*self.utility)
@@ -216,6 +219,9 @@ class grud():
             os.makedirs(checkpoint_dir)
         self.saver.save(self.sess,os.path.join(checkpoint_dir, self.experiment+'.model'), global_step=step)
 
+    def save_output(self,predictions,filenames):
+        helper.save_output(predictions,filenames,self.result_path,self.experiment, self.imputation_method, self.seed, self.threshold)
+            
 
     def train(self):
         tf.global_variables_initializer().run()
@@ -254,16 +260,6 @@ class grud():
             print("epoch is : %2.2f, Accuracy: %.8f, AUC: %.8f, TrainLoss: %.8f, ValLoss: %.8f, CR: %.8f" % (epochcount, acc, auc, loss, val_loss, cr))
         return auc, tp, fp, tn. fn
 
-    def save_output(self,predictions,filenames):
-        for i in range(0,len(predictions)):
-            folder = os.path.join(self.result_path,self.experiment)
-            if not os.path.exists(folder):
-                os.makedirs(folder)
-            filename = os.path.join(folder, filenames[i])
-            with open(filename,'w') as f:
-                f.write('PredictedProbability|PredictedLabel\n')
-                for j in range(0, len(predictions[i])):
-                    f.write(str(predictions[i][j][0])+'|'+str(int(predictions[i][j][0]>self.threshold))+'\n')
 
     def test(self, counter=None, val=True, checkpoint_dir=None, test_epoch=100, generate_files=False):
         if val:
@@ -309,7 +305,7 @@ class grud():
             
             if generate_files:
                 self.save_output(predictions_ind,test_files)
-            
+
         auc = metrics.roc_auc_score(np.array(target),np.array(predictions))
         predictions = np.array(np.array(predictions)>self.threshold).astype(int)
         acc = metrics.accuracy_score(np.array(target),np.array(predictions))

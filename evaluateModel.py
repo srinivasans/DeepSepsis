@@ -26,7 +26,9 @@ if __name__ == '__main__':
     parser.add_argument('--celltype', type=str, default='GRUD')
     parser.add_argument('--experiment', type=str, default='GRUM')
     parser.add_argument('--threshold', type=float, default=0.5)
+    parser.add_argument('--seed', type=int, default=42)
     parser.add_argument('--impute-forward', type=float, default=0)
+    parser.add_argument('--imputation_method', type=str, default='mean')
 
     args = parser.parse_args()
     
@@ -63,6 +65,7 @@ if __name__ == '__main__':
     tf.reset_default_graph()
     config = tf.ConfigProto() 
     config.gpu_options.allow_growth = True 
+    
     with tf.Session(config=config) as sess:
         model = GRUD.grud(sess,
                     args=args,
@@ -71,8 +74,8 @@ if __name__ == '__main__':
                     test_data=dataset.test_data
                     )
         model.build()
-        test_acc, test_auc, test_tp, test_fp, test_tn, test_fn, sens, spec = model.test(checkpoint_dir='checkpoint/GRU_C_Mean/GRU_C_Mean_0.001_100_True/epoch10', 
-                                                                                test_epoch=10, 
+        test_acc, test_auc, test_tp, test_fp, test_tn, test_fn, sens, spec = model.test(checkpoint_dir='checkpoint/GRUM_C_Mean_40k/GRUM_C_Mean_40k_0.001_100_True/epoch5', 
+                                                                                test_epoch=5, 
                                                                                 generate_files=True, 
                                                                                 val=False)
         print((test_acc, test_auc, test_tp, test_fp, test_tn, test_fn, sens, spec))
