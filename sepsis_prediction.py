@@ -50,19 +50,25 @@ if __name__ == '__main__':
     parser.add_argument('--experiment', type=str, default='GRUD')
     parser.add_argument('--threshold', type=float, default=0.5)
     parser.add_argument('--impute-forward', type=int, default=0)
+    parser.add_argument('--imputation_method', type=str, default='mean')
+    parser.add_argument('--seed', type=int, default=42)
+
 
 
     args = parser.parse_args()
 
     if args.normalize==0:
             args.normalize=False
-    if args.normalize==1:
+    elif args.normalize==1:
             args.normalize=True
 
-    if args.impute_forward==0:
-            args.impute_forward=False
-    if args.impute_forward==1:
-            args.impute_forward=True
+    if args.imputation_method=='forward':
+        args.impute_forward=True
+    elif args.imputation_method=='mean':
+        args.impute_forward=False
+    else:
+        # Open for unified imputation interface
+        args.impute_forward=False
 
     checkdir=args.checkpoint_dir
     logdir=args.log_dir
