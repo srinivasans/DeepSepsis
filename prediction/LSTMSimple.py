@@ -3,9 +3,9 @@ sys.path.append("..")
 import tensorflow as tf
 from .RNNModel import RNNModel
 
-class LSTM(RNNModel):
+class LSTMSimple(RNNModel):
     def __init__(self, sess, args, train_data, validation_data,test_data):
-        super(LSTM, self).__init__(sess,args,train_data,validation_data,
+        super(LSTMSimple, self).__init__(sess,args,train_data,validation_data,
                                     test_data)
 
     def RNN(self, x, m, delta, mean, x_lengths):
@@ -14,7 +14,10 @@ class LSTM(RNNModel):
             # shape of m = [batch_size, n_steps, n_inputs]
             # shape of delta = [batch_size, n_steps, n_inputs]
             X = tf.reshape(x, [-1, self.n_inputs])
-            X = tf.reshape(X, [-1, self.n_steps, self.n_inputs])
+            M = tf.reshape(m, [-1, self.n_inputs])
+            Delta = tf.reshape(delta, [-1, self.n_inputs])
+            X = tf.concat([X,M,Delta], axis=1)
+            X = tf.reshape(X, [-1, self.n_steps, 3*self.n_inputs])
 
             lstm_cell = tf.nn.rnn_cell.LSTMCell(num_units=self.n_hidden_units,
                                                activation=None,
