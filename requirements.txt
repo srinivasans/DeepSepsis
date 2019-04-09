@@ -1,0 +1,14 @@
+Keras-Applications==1.0.7
+Keras-Preprocessing==1.0.9
+matplotlib==3.0.2
+numpy==1.15.3
+pandas==0.23.4
+pytest==4.4.0
+scikit-learn==0.20.2
+scipy==1.1.0
+seaborn==0.9.0
+tensorboard==1.13.1
+tensorflow==1.13.1
+tensorflow-estimator==1.13.0
+xgboost==0.82
+tqdm==4.28.1

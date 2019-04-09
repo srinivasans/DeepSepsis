@@ -26,6 +26,8 @@ if __name__ == '__main__':
     parser.add_argument('--celltype', type=str, default='GRUD')
     parser.add_argument('--experiment', type=str, default='GRUD')
     parser.add_argument('--threshold', type=float, default=0.5)
+    parser.add_argument('--early-stopping-patience', type=int, default=5)
+    parser.add_argument('--seed', type=int, default=42)
 
     args = parser.parse_args()
     
@@ -43,32 +45,25 @@ if __name__ == '__main__':
     args.checkpoint_dir=os.path.join(checkdir, args.experiment)
     args.log_dir=os.path.join(logdir,args.experiment)
     
-    train_data=readDataImputation.ReadData(path=args.data_path,
-                                batchSize=args.batch_size, 
-                                isTrain=True, 
-                                normalize=args.normalize, 
-                                padding=True, 
-                                mean = None, 
-                                std = None)
-    
-    test_data=readDataImputation.ReadData(path=args.data_path.replace("train","test"),
-                            batchSize=args.batch_size,
-                            isTrain=False,
-                            normalize=args.normalize,
-                            padding=True,
-                            mean=train_data.mean,
-                            std=train_data.std,
-                            maxLength=train_data.maxLength)
+    print("Imputation Experiment : %s, Cell Type : %s, Seed : %d"%(args.experiment, 
+                                                                        args.celltype,
+                                                                        args.seed))
 
+    dataset=imputerDataset.Dataset(path=args.data_path,
+                                        batchSize=args.batch_size,
+                                        train_ratio=0.8, 
+                                        normalize=True, 
+                                        padding=True)
     tf.reset_default_graph()
     config = tf.ConfigProto() 
     config.gpu_options.allow_growth = True 
     with tf.Session(config=config) as sess:
         model = DAEImpute.DAE(sess,
                     args=args,
-                    train_data=train_data,
-                    test_data=test_data
+                    train_data=dataset.train_data,
+                    val_data=dataset.val_data
+                    test_data=dataset.test_data
                     )
         model.build()
-        acc, auc, loss= model.test(checkpoint_dir='checkpoint/GRUD/GRUD_0.001_100_True/epoch70', test_epoch=70, generate_files=True)
-        print(auc)
+        loss= model.test(checkpoint_dir='checkpoint/GRUD/GRUD_0.001_100_True/epoch70', test_epoch=70, generate_files=True)
+        print(loss)

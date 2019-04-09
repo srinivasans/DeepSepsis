@@ -6,6 +6,11 @@ import os
 import tensorflow as tf
 from datautils import imputerDataset
 from imputation import DAEImpute
+import warnings
+import pytest
+warnings.filterwarnings("ignore")
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+tf.logging.set_verbosity(tf.logging.ERROR)
 
 
 '''
@@ -44,9 +49,13 @@ if __name__ == '__main__':
                         help='Directory name to save training logs')
     parser.add_argument('--normalize',type=int,default=1)
     parser.add_argument('--dropout-rate',type=float,default=0.5)
-    parser.add_argument('--celltype', type=str, default='GRUD')
-    parser.add_argument('--experiment', type=str, default='GRUD')
+    parser.add_argument('--celltype', type=str, default='GRU')
+    parser.add_argument('--experiment', type=str, default='DAE')
     parser.add_argument('--threshold', type=float, default=0.5)
+    parser.add_argument('--early-stopping-patience', type=int, default=5)
+    parser.add_argument('--seed', type=int, default=42)
+    parser.add_argument('--missing-rate', type=float, default=0.4)
+    parser.add_argument('--min-mask-epoch', type=int, default=10)
 
     args = parser.parse_args()
 
@@ -64,11 +73,18 @@ if __name__ == '__main__':
     args.checkpoint_dir=os.path.join(checkdir, args.experiment)
     args.log_dir=os.path.join(logdir,args.experiment)
 
+    print("Imputation Experiment : %s, Cell Type : %s, Seed : %d"%(args.experiment, 
+                                                                        args.celltype,
+                                                                        args.seed))
+
     dataset=imputerDataset.Dataset(path=args.data_path,
                                         batchSize=args.batch_size,
                                         train_ratio=0.8, 
                                         normalize=True, 
-                                        padding=True)
+                                        padding=True,
+                                        seed = args.seed,
+                                        missingRate=args.missing_rate,
+                                        minMaskEpoch=args.min_mask_epoch)
         
     lrs=[0.001]
     for lr in lrs:
@@ -81,18 +97,24 @@ if __name__ == '__main__':
             model = DAEImpute.DAE(sess,
                             args=args,
                             train_data=dataset.train_data,
+                            val_data=dataset.val_data,
                             test_data=dataset.val_data)
 
             # build computational graph
             model.build()
 
             # Train model - (Internally validate the model on test set)
-            auc = model.train()
-            if auc > max_auc:
-                max_auc = auc
+            min_loss, best_epoch = model.train()
 
-    print("max auc is: " + str(max_auc))
-    f2 = open(('_').join(["max_auc",args.celltype]),"w")
-    f2.write(str(max_auc))
-    f2.close()
+            # Reproducing validation results from best epoch            
+            val_loss = model.test(val=True, test_epoch=best_epoch, load_checkpoint=True)
+            assert val_loss == pytest.approx(min_loss)
+            
+            # Test model and generate results for test data
+            test_loss = model.test(val=False, test_epoch=best_epoch, generate_files=True, load_checkpoint=True)
 
+        print("min mse is: " + str(min_loss))
+        result_file = open(os.path.join(args.result_path, args.experiment, args.imputation_method, ('_').join(['seed',str(args.seed)]), 'result.mse'),"w")
+        result_file.write("val mse: {}".format(min_mse))
+        result_file.write("\ntest mse: {}".format(min_mse))
+        result_file.close()

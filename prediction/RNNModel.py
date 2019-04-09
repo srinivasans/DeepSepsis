@@ -76,7 +76,7 @@ class RNNModel():
         self.isTrain = tf.placeholder(tf.bool)
 
         # Output Weights
-        self.kernel_initializer = tf.initializers.glorot_uniform()
+        self.kernel_initializer = tf.initializers.glorot_uniform(seed=self.seed)
         self.bias_initializer = tf.initializers.zeros()
 
         self.sess = sess
@@ -157,11 +157,7 @@ class RNNModel():
 
         if checkpoint_dir is None:
             checkpoint_dir = os.path.join(self.checkpoint_dir, self.getModelDir(epoch))
-
         ckpt = tf.train.get_checkpoint_state(checkpoint_dir)
-        print(checkpoint_dir)
-        print(ckpt)
-        print(ckpt.model_checkpoint_path)
 
         if ckpt and ckpt.model_checkpoint_path:
             ckpt_name = os.path.basename(ckpt.model_checkpoint_path)

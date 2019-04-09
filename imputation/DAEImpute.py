@@ -37,8 +37,10 @@ class DAE():
                 sess,
                 args,
                 train_data,
+                val_data,
                 test_data):
         self.train_data = train_data
+        self.val_data = val_data
         self.test_data = test_data
         self.lr = args.lr
         self.batch_size = args.batch_size
@@ -55,6 +57,8 @@ class DAE():
         self.n_steps = train_data.maxLength
         self.threshold = args.threshold
         self.experiment = args.experiment
+        self.early_stopping_patience = args.early_stopping_patience
+        self.seed = args.seed
 
         self.x = tf.placeholder(tf.float32, [None, self.n_steps, self.n_inputs])
         self.y = tf.placeholder(tf.float32, [None, self.n_steps, self.n_inputs])
@@ -70,7 +74,7 @@ class DAE():
         self.isTrain = tf.placeholder(tf.bool)
 
         # Output Weights
-        self.kernel_initializer = tf.initializers.glorot_uniform()
+        self.kernel_initializer = tf.initializers.glorot_uniform(seed=self.seed)
         self.bias_initializer = tf.initializers.zeros()
 
         self.sess = sess
@@ -80,29 +84,14 @@ class DAE():
                                             self.batch_size, self.normalize, epoch)
 
     def RNN(self, x, m, delta, mean, x_lengths):
-        with tf.variable_scope('GRUD', reuse=tf.AUTO_REUSE):
+        with tf.variable_scope('DAE', reuse=tf.AUTO_REUSE):
             # shape of x = [batch_size, n_steps, n_inputs]
             # shape of m = [batch_size, n_steps, n_inputs]
             # shape of delta = [batch_size, n_steps, n_inputs]
             X = tf.reshape(x, [-1, self.n_inputs])
             M = tf.reshape(m, [-1, self.n_inputs])
             Delta = tf.reshape(delta, [-1, self.n_inputs])
-            #X = tf.concat([X,M,Delta], axis=1)
             X = tf.reshape(X, [-1, self.n_steps, self.n_inputs])
-            
-            # grud_cell = GRUDCell.GRUDCell(input_size=self.n_inputs,
-            #                             hidden_size=self.n_hidden_units,
-            #                             indicator_size=self.n_inputs,
-            #                             delta_size=self.n_inputs,
-            #                             output_size = 1,
-            #                             dropout_rate = self.dropout_rate,
-            #                             xMean = mean, 
-            #                             activation=None, # Uses tanh if None
-            #                             reuse=tf.AUTO_REUSE,
-            #                             kernel_initializer=self.kernel_initializer,#Orthogonal initializer
-            #                             bias_initializer=self.bias_initializer,#ones - commonly used in LSTM http://www.jmlr.org/proceedings/papers/v37/jozefowicz15.pdf
-            #                             name=None,
-            #                             dtype=None)
 
             grud_cell = tf.nn.rnn_cell.GRUCell(num_units=self.n_hidden_units,
                                                 activation=None, # Uses tanh if None
@@ -132,7 +121,6 @@ class DAE():
     def build(self):
         self.pred = self.RNN(self.x, self.m, self.delta, self.mean, self.x_lengths)
         self.output = self.pred
-        #self.neg, self.output = tf.split(self.output, [1,1], -1)
         
         self.loss = tf.reduce_mean(tf.squared_difference(self.pred*self.m,self.y*self.m))
         self.train_op = tf.train.AdamOptimizer(self.lr).minimize(self.loss)
@@ -151,9 +139,6 @@ class DAE():
             checkpoint_dir = os.path.join(self.checkpoint_dir, self.getModelDir(epoch))
 
         ckpt = tf.train.get_checkpoint_state(checkpoint_dir)
-        print(checkpoint_dir)
-        print(ckpt)
-        print(ckpt.model_checkpoint_path)
 
         if ckpt and ckpt.model_checkpoint_path:
             ckpt_name = os.path.basename(ckpt.model_checkpoint_path)
@@ -180,6 +165,8 @@ class DAE():
         epochcount=0
         dataset=self.train_data
         counter = 0
+        min_mse = np.inf
+        early_stopping_counter = 0
         while epochcount<self.epochs:
             tf.local_variables_initializer().run()
             dataset.shuffle()
@@ -202,17 +189,28 @@ class DAE():
                 self.board.add_summary(summary_str, counter)
             epochcount+=1
             
-            generate_files = False
-            if epochcount%10==0:
+            if epochcount%1==0:
                 self.save_model(epochcount, epochcount)
 
-            auc = 0.0
-            val_loss = 0.0
-            acc = 0.0
             test_counter = (epochcount-1)*counter/epochcount
-            acc,auc,val_loss=self.test(counter=test_counter, generate_files=generate_files)
-            print("epoch is : %2.2f, Accuracy: %.8f, AUC: %.8f, TrainLoss: %.8f, ValLoss: %.8f" % (epochcount, acc, auc, loss, val_loss))
-        return auc
+            val_loss=self.test(val=True,counter=test_counter)
+            print("epoch is : %2.2f, TrainLoss(MSE): %.8f, ValLoss(MSE): %.8f" % (epochcount, loss, val_loss))
+
+            # Early Stopping
+            if(val_loss < min_mse):
+                min_mse = val_loss
+                early_stopping_counter = 0
+                best_epoch = epochcount
+            else:
+                early_stopping_counter+=1
+            
+            # if early_stopping_counter >= self.early_stopping_patience:
+            #     print("Early Stopping Training : Max MSE = %f , Best Epoch : %d"%(min_mse, best_epoch))
+            #     break
+
+        return min_mse, best_epoch
+
+
 
     def save_output(self,predictions,labels,filenames):
         for i in range(0,len(predictions)):
@@ -229,9 +227,14 @@ class DAE():
                         f.write(str(predictions[i][j][k])+'|')
                     f.write('0|0|0|'+str(j)+'|'+str(labels[i][j][0])+'\n')
 
-    def test(self, checkpoint_dir=None, test_epoch=100, generate_files=False,counter=0):
+    def test(self, val=True, checkpoint_dir=None, test_epoch=100, generate_files=False,counter=0, load_checkpoint=False):
         start_time=time.time()
-        dataset = self.test_data
+
+        if val:
+            dataset = self.val_data
+        else:
+            dataset = self.test_data
+
         dataset.shuffle()
         target = []
         predictions = []
@@ -239,7 +242,7 @@ class DAE():
         predictions_ind = []
         labels_ind = []
 
-        if checkpoint_dir is not None:
+        if load_checkpoint:
             self.load_model(test_epoch, checkpoint_dir)
 
         tf.local_variables_initializer().run()
@@ -268,11 +271,7 @@ class DAE():
             
             if generate_files:
                 self.save_output(predictions_ind,labels_ind,test_files)
-            
-        #auc = metrics.roc_auc_score(np.array(target),np.array(predictions))
-        #predictions = np.array(np.array(predictions)>self.threshold).astype(int)
-        #acc = metrics.accuracy_score(np.array(target),np.array(predictions))
-        # Also compute utility score
-        return 0,0,val_loss
+        
+        return val_loss
 
     
