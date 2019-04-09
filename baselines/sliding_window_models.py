@@ -5,47 +5,36 @@ import numpy as np
 import sklearn 
 from sklearn.metrics import roc_auc_score, f1_score, confusion_matrix, precision_score, recall_score, roc_curve
 
-def createSWData(X, y, length, window_size):
+def createSWData(X, y, window_size):
     X_train = []
     y_train = []
-    features = None
 
-    i = 0
-    for patient in ...:
+    for i in range(X.shape[0]):
+        # Get patient data
+        X_patient = X[i]
+        y_patient = y[i].ravel()
 
-        
-        # Get sliding-window data
+        # Get sliding-window data and append to X_train
         window_start = 0
-        while (window_start + window_size) <= patient_df.shape[0]:
-            window_data = patient_df[window_start:window_start + window_size, 0:34].astype(np.float)
+        while (window_start + window_size) <= X_patient.shape[0]:
+            window_data = X_patient[window_start:window_start + window_size, :]
             assert window_data.shape[0] == window_size
 
             x_i = np.reshape(window_data, (window_size*window_data.shape[1],))
             X_train.append(x_i)
-
-            label = int(patient_df[window_start + window_size - 1, 40])
-            y_train.append(label)
+            y_train.append(y_patient[window_start + window_size - 1])
 
             window_start += 1
     
-    return np.array(X_train), np.array(y_train), features
+    return np.array(X_train), np.array(y_train)
 
-def predict(model, model_type, test_data, test_labels, test_files, window_size, impute_method):
-
-    X_test = []
-    y_test = []
-    features = None
-    
-    i = 0
-    for patient in test_data[i,:] :
-        X = []
-        y = []
-        
-        # Create patient df
-        patient_df = np.array(patient_df)
-        X_patient = np.concatenate((patient_df[:,0:34], patient_df[:,40][:,None]), axis=1).astype(np.float)
-        
-        assert X_patient.shape[0] == patient_df.shape[0]
+def utility_predict(model, model_type, test_data, window_size, impute_method):
+    X_test, y_test, files = test_data.x, test_data.y, test_data.test_files
+    for i in range(X_test.shape[0]):
+        X_sw = []
+        y_sw = []
+        X_patient = X_test[i]
+        y_patient = y_test[i]
         
         # Append rows of values to top of df 
         mean_vals = np.mean(X_patient, axis=0)
@@ -54,56 +43,48 @@ def predict(model, model_type, test_data, test_labels, test_files, window_size, 
         # Get data for every window
         window_start = 0
         while (window_start + window_size) <= X_patient.shape[0]:
-            window_data = X_patient[window_start:window_start + window_size, 0:X_patient.shape[1]-1]
+            window_data = X_patient[window_start:window_start + window_size,:]
             assert window_data.shape[0] == window_size
 
             x_i = np.reshape(window_data, (window_size*window_data.shape[1],))
-            X.append(x_i)
-            
-            label = int(X_patient[window_start+window_size-1, X_patient.shape[1]-1])
-            y.append(label)
+            X_sw.append(x_i)
+            y_sw.append(y_patient[window_start+window_size-1])
 
             window_start += 1
         
-        # Add X to X_test
-        X_test.extend(list(X))
-        y_test.extend(list(y))
-        
         # Predict for every time step
-        y_pred = model.predict(X)
-        y_pred_prob = model.predict_proba(X)
+        y_pred = model.predict(X_sw)
+        y_pred_prob = model.predict_proba(X_sw)
         
-        assert y_pred.shape[0] == y.shape[0]
+        assert y_pred.shape[0] == y_sw.shape[0]
         
         # Save to file
-        if not os.path.isdir('../results/%s/%s_%d'%(impute_method)):
-            os.mkdir('../results/model_predictions/%s_pred_%s_imputed_%d'%(model_type, impute_method, window_size))
-            print("Created new directory for model:%s, imp:%s, ws:%d"%(model_type, impute_method, window_size))
+        if not os.path.isdir('results/%s/%s_%d'%(model_type, impute_method, window_size)):
+            os.mkdir('results/%s/%s_%d'%(model_type, impute_method, window_size))
             
         pred = np.transpose(np.vstack((y_pred_prob[:,1], y_pred)))
         pred_df = pd.DataFrame(pred, columns=["PredictedProbability", "PredictedLabel"])
-        pred_df.to_csv('../results/%s/%s_%d_%d/%s'%(model_type, impute_method, random_seed, window_size), 
-                       sep='|', index=False)
-        
-    return np.array(X_test), np.array(y_test)
+        pred_df.to_csv('results/%s/%s_%d/%s.psv'%(model_type, impute_method, window_size, files[i]), sep='|', index=False)
 
-def train_predict(model, model_label, data):
+def train_predict(model, model_label, data, impute_method):
 
-    # Model Label, WS, imp. method, train score, train recall, train prec, test score, test auc, test recall, test prec
+    # ws, imp. method, train score, train recall, train prec, test score, 
+    # test auc, test recall, test prec, test conf matrix
     results = []
 
     for ws in range(1,7):
-        res = [ws, 'mean']
-        print("Working on ws: %d, imp: %s"%(ws,'mean'))
+        res = [ws, impute_method]
+        print("Working on ws: %d, imp: %s"%(ws,impute_method))
 
-        X_train, y_train = createSWData(data.train_data.x, data.train_data.y, data.train_data.x_length, ws)
+        X_train, y_train = createSWData(np.abs(data.train_data.x), data.train_data.y, ws)
         model = model.fit(X_train, y_train)
+        # utility_predict(model, model_label, data.test_data, ws, impute_method)
 
         res.append(model.score(X_train, y_train))
         y_pred = model.predict(X_train)
         res.extend([recall_score(y_train, y_pred), precision_score(y_train, y_pred)])
 
-        X_test, y_test = createSWData(data.test_data.x, data.test_data.y, data.test_data.x_lengths, ws)
+        X_test, y_test = createSWData(data.val_data.x, data.val_data.y, ws)
         res.append(model.score(X_test, y_test))
 
         y_pred_prob = model.predict_proba(X_test)
@@ -117,20 +98,39 @@ def train_predict(model, model_label, data):
             
     return np.array(results)
 
-random_seed = 42
-datasets = dataset.Dataset('../sepsis_data/all_data', train_ratio=0.8, maxLength=336)
+def save_results(res, path):
+    with open(path, 'a') as f:
+        for i in range(res.shape[0]):
+            f.write( " ".join([str(v) for v in res[i,:]]) + '\n')
+
+random_seed = [1, 21, 23, 30]
+impute_methods = ['mean', 'forward', 'DAE', 'kNN', "GRU-D"]
+datasets_mean = dataset.Dataset('../sepsis_data/all_data', train_ratio=0.8, maxLength=336, padding=False)
+datasets_forw = dataset.Dataset('../sepsis_data/all_data', train_ratio=0.8, maxLength=336, imputeForward=True, padding=False)
 
 from sklearn.linear_model import LogisticRegression, LogisticRegressionCV
-
-lr_model = LogisticRegressionCV(solver='lbfgs', max_iter=1000, class_weight='balanced')
-lr_results = train_predict(lr_model, 'RLR', datasets)
-lr_results.tofile('results/RLR/mean_%d/'%random_seed)
+lr_model = LogisticRegression(C=0.0001, solver='lbfgs', max_iter=1000, class_weight='balanced')
+rlr_mean_res = train_predict(lr_model, 'RLR', datasets_mean, 'mean')
+rlr_forw_res = train_predict(lr_model, 'RLR', datasets_forw, 'forw')
+save_results(rlr_mean_res, 'baselines/RLR_mean')
+save_results(rlr_forw_res, 'baselines/RLR_forw')
 
 from sklearn.ensemble import RandomForestClassifier
+rf_model = RandomForestClassifier(max_depth=5, class_weight='balanced')
+rf_mean_res = train_predict(rf_model, 'RF', datasets_mean, 'mean')
+rf_forw_res = train_predict(rf_model, 'RF', datasets_forw, 'forw')
+save_results(rf_mean_res, 'baselines/RF_mean')
+save_results(rf_forw_res, 'baselines/RF_forw')
 
-rf_model = RandomForestClassifier(class_weight='balanced')
-rf_results = train_predict(rf_model, 'RF')
-rf_results.tofile('../results/RF/mean_%d'%random_seed)
+# XGBoost
+import xgboost as xgb 
+dtrain = xgb.DMatrix(datasets_mean.train_data.x, label=datasets_mean.train_data.y)
+
+
+# AdaBoost TODO
+# from sklearn.ensemble import GradientBoostingClassifier
+
+# ab_model = GradientBoostingClassifier(loss='exponential')
 
 # import keras
 # from keras.models import Sequential 
@@ -166,11 +166,6 @@ rf_results.tofile('../results/RF/mean_%d'%random_seed)
 
 # nn_results = np.array(nn_results)
 # nn_results.tofile('../results/nn_results', sep='\n')
-
-# from sklearn.ensemble import GradientBoostingClassifier
-
-# ab_model = GradientBoostingClassifier(loss='exponential')
-
 
 
 
