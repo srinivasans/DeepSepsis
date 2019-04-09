@@ -109,8 +109,8 @@ def save_results(res, path):
 # Get Data
 random_seed = [1, 21, 23, 30]
 impute_methods = ['mean', 'forward', 'DAE', 'kNN', "GRU-D"]
-datasets_mean = dataset.Dataset('../sepsis_data/all_data', train_ratio=0.8, maxLength=336, padding=False, calculateDelay=False)
-datasets_forw = dataset.Dataset('../sepsis_data/all_data', train_ratio=0.8, maxLength=336, imputeForward=True, calculateDelay=False, padding=False)
+datasets_mean = dataset.Dataset('/u/angadk/ml4h/data', train_ratio=0.8, maxLength=336, padding=False, calculateDelay=False)
+datasets_forw = dataset.Dataset('/u/angadk/ml4h/data', train_ratio=0.8, maxLength=336, imputeForward=True, calculateDelay=False, padding=False)
 
 # Regularized Logistic Regression
 from sklearn.linear_model import LogisticRegression, LogisticRegressionCV
@@ -180,7 +180,7 @@ def run_xgb():
 # AdaBoost
 from sklearn.ensemble import GradientBoostingClassifier
 def run_adb():
-    ab_model = GradientBoostingClassifier(loss='exponential')
+    ab_model = GradientBoostingClassifier(n_estimators=10, loss='exponential')
     ab_mean_res = train_predict(ab_model, 'AB', datasets_mean, 'mean')
     ab_forw_res = train_predict(ab_model, 'AB', datasets_forw, 'forw')
     save_results(ab_mean_res, 'baselines/AB_mean')
@@ -193,7 +193,7 @@ def run_svm():
 
 run_rlr()
 run_rf()
-# run_adb()
+run_adb()
 run_xgb()
 # run_swm()
 
