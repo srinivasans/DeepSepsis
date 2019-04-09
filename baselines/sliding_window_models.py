@@ -4,6 +4,7 @@ from datautils import dataset
 import numpy as np 
 import sklearn 
 from sklearn.metrics import roc_auc_score, f1_score, confusion_matrix, precision_score, recall_score, roc_curve
+import multiprocessing as mp 
 
 def createSWData(X, y, window_size):
     X_train = []
@@ -102,7 +103,8 @@ def train_predict(model, model_label, data, impute_method):
     return np.array(results)
 
 def save_results(res, path):
-    with open(path, 'a') as f:
+    with open(path, 'w') as f:
+        f.write("WS, Imp, train acc, train recall, train prec, test acc, test auc, test recall, test prec, conf matrix\n")
         for i in range(res.shape[0]):
             f.write( " ".join([str(v) for v in res[i,:]]) + '\n')
 
@@ -180,7 +182,7 @@ def run_xgb():
 # AdaBoost
 from sklearn.ensemble import GradientBoostingClassifier
 def run_adb():
-    ab_model = GradientBoostingClassifier(loss='exponential')
+    ab_model = GradientBoostingClassifier(n_estimators=10, loss='exponential')
     ab_mean_res = train_predict(ab_model, 'AB', datasets_mean, 'mean')
     ab_forw_res = train_predict(ab_model, 'AB', datasets_forw, 'forw')
     save_results(ab_mean_res, 'baselines/AB_mean')
@@ -189,13 +191,23 @@ def run_adb():
 # SVM
 from sklearn.svm import SVC
 def run_svm():
-    pass
+    svm_model = SVC(C=1000, gamma='auto', class_weight='balanced', probability=True)
+    svm_mean_res = train_predict(svm_model, "SVM", datasets_mean, 'mean')
+    svm_forw_res = train_predict(svm_model, "SVM", datasets_forw, 'forw')
+    save_results(svm_mean_res, 'baselines/SVM_mean')
+    save_results(svm_forw_res, 'baselines/SVM_forw')
 
+# Run models
+print("Running RLR..")
 run_rlr()
+print("Running RF..")
 run_rf()
-# run_adb()
+print("Running AB..")
+run_adb()
+print("Running XGB..")
 run_xgb()
-# run_swm()
+print("Running SVM..")
+run_svm()
 
 # import keras
 # from keras.models import Sequential 
