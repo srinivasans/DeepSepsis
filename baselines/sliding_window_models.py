@@ -172,8 +172,7 @@ def train_predict_xgb(model, data, impute_method):
     return np.array(results)
 
 def run_xgb():
-    # params = {'max_depth': 10, 'eta': 1, 'objective': 'binary:logistic', 'lambda': 100, 'eval_metric': 'aucpr'}
-    xgb_model = XGBClassifier(max_depth=10, learning_rate=1, reg_lambda=10, scale_pos_weight=55.6)
+    xgb_model = XGBClassifier(n_estimators=10, max_depth=10, learning_rate=1, reg_lambda=10, scale_pos_weight=55.6)
     xgb_mean_res = train_predict_xgb(xgb_model, datasets_mean, 'mean')
     xgb_forw_res = train_predict_xgb(xgb_model, datasets_forw, 'forw')
     save_results(xgb_mean_res, 'baselines/XG_mean')
@@ -219,11 +218,12 @@ print("Running SVM..")
 
 # for ws in range(3,7):
 #     nn_model = Sequential()
-#     nn_model.add(Dense(128, activation='relu', input_dim=ws*34))
+#     nn_model.add(Dense(432, activation='relu', input_dim=ws*34))
 #     nn_model.add(Dropout(rate=0.5))
-#     nn_model.add(Dense(64, activation='relu'))
+#     nn_model.add(Dense(216, activation='relu'))
 #     nn_model.add(Dropout(rate=0.5))
-#     nn_model.add(Dense(32, activation='relu'))
+#     nn_model.add(Dense(108, activation='relu'))
+#     nn_model.add(Dropout(rate=0.5))
 #     nn_model.add(Dense(1, activation='sigmoid'))
 #     nn_model.compile(optimizer='Adam', loss='binary_crossentropy')
     
@@ -231,7 +231,7 @@ print("Running SVM..")
 #         res = [ws, imp]
 #         X_train, y_train, _ = create_train_data(ws, imp)
 #         cw = class_weight.compute_class_weight('balanced', np.unique(y_train), y_train)
-#         nn_model.fit(X_train, y_train, epochs=10, verbose=0, validation_split=0.3, class_weight=cw)
+#         nn_model.fit(X_train, y_train, epochs=100, verbose=0, validation_split=0.3, class_weight=cw)
         
 #         X_test, y_test = predict(nn_model, "NN", ws, imp)
 #         y_pred = nn_model.predict(X_test)
