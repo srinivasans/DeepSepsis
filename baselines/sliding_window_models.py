@@ -76,9 +76,12 @@ def train_predict(model, model_label, data, impute_method):
         res = [ws, impute_method]
         print("Working on ws: %d, imp: %s"%(ws,impute_method))
 
-        X_train, y_train = createSWData(np.abs(data.train_data.x), data.train_data.y, ws)
+        if model_label == 'RLR':
+            X_train, y_train = createSWData(np.abs(data.train_data.x), data.train_data.y, ws)
+        else:
+            X_train, y_train = createSWData(data.train_data.x, data.train_data.y, ws)
+
         model = model.fit(X_train, y_train)
-        # utility_predict(model, model_label, data.test_data, ws, impute_method)
 
         res.append(model.score(X_train, y_train))
         y_pred = model.predict(X_train)
@@ -103,34 +106,96 @@ def save_results(res, path):
         for i in range(res.shape[0]):
             f.write( " ".join([str(v) for v in res[i,:]]) + '\n')
 
+# Get Data
 random_seed = [1, 21, 23, 30]
 impute_methods = ['mean', 'forward', 'DAE', 'kNN', "GRU-D"]
-datasets_mean = dataset.Dataset('../sepsis_data/all_data', train_ratio=0.8, maxLength=336, padding=False)
-datasets_forw = dataset.Dataset('../sepsis_data/all_data', train_ratio=0.8, maxLength=336, imputeForward=True, padding=False)
+datasets_mean = dataset.Dataset('../sepsis_data/all_data', train_ratio=0.8, maxLength=336, padding=False, calculateDelay=False)
+datasets_forw = dataset.Dataset('../sepsis_data/all_data', train_ratio=0.8, maxLength=336, imputeForward=True, calculateDelay=False, padding=False)
 
+# Regularized Logistic Regression
 from sklearn.linear_model import LogisticRegression, LogisticRegressionCV
-lr_model = LogisticRegression(C=0.0001, solver='lbfgs', max_iter=1000, class_weight='balanced')
-rlr_mean_res = train_predict(lr_model, 'RLR', datasets_mean, 'mean')
-rlr_forw_res = train_predict(lr_model, 'RLR', datasets_forw, 'forw')
-save_results(rlr_mean_res, 'baselines/RLR_mean')
-save_results(rlr_forw_res, 'baselines/RLR_forw')
+def run_rlr():
+    lr_model = LogisticRegression(C=0.0001, solver='lbfgs', max_iter=1000, class_weight='balanced')
+    rlr_mean_res = train_predict(lr_model, 'RLR', datasets_mean, 'mean')
+    rlr_forw_res = train_predict(lr_model, 'RLR', datasets_forw, 'forw')
+    save_results(rlr_mean_res, 'baselines/RLR_mean')
+    save_results(rlr_forw_res, 'baselines/RLR_forw')
+    # utility_predict(lr_model, 'RLR', data.test_data, ws, impute_method)
 
+# Random Forest 
 from sklearn.ensemble import RandomForestClassifier
-rf_model = RandomForestClassifier(max_depth=5, class_weight='balanced')
-rf_mean_res = train_predict(rf_model, 'RF', datasets_mean, 'mean')
-rf_forw_res = train_predict(rf_model, 'RF', datasets_forw, 'forw')
-save_results(rf_mean_res, 'baselines/RF_mean')
-save_results(rf_forw_res, 'baselines/RF_forw')
+def run_rf():
+    rf_model = RandomForestClassifier(max_depth=10, class_weight='balanced')
+    rf_mean_res = train_predict(rf_model, 'RF', datasets_mean, 'mean')
+    rf_forw_res = train_predict(rf_model, 'RF', datasets_forw, 'forw')
+    save_results(rf_mean_res, 'baselines/RF_mean')
+    save_results(rf_forw_res, 'baselines/RF_forw')
 
 # XGBoost
-import xgboost as xgb 
-dtrain = xgb.DMatrix(datasets_mean.train_data.x, label=datasets_mean.train_data.y)
+import xgboost as xgb
+from xgboost import XGBClassifier 
+def train_predict_xgb(model, data, impute_method):
+    results = []
 
+    for ws in range(1,7):
+        res = [ws, impute_method]
+        print("Working on ws: %d, imp: %s"%(ws,impute_method))
 
-# AdaBoost TODO
-# from sklearn.ensemble import GradientBoostingClassifier
+        # Get Data
+        X_train, y_train = createSWData(data.train_data.x, data.train_data.y, ws)
+        X_val, y_val = createSWData(data.train_data.x, data.train_data.y, ws)
+        X_test, y_test = createSWData(data.train_data.x, data.train_data.y, ws)
+        dtrain = xgb.DMatrix(X_train, label=y_train)
+        dval = xgb.DMatrix(X_val, label=y_val)
+        dtest = xgb.DMatrix(X_test, label=y_test)
 
-# ab_model = GradientBoostingClassifier(loss='exponential')
+        # Train model
+        # evallist = evallist = [(dtrain, 'train'), (dval, 'eval')]
+        bst = model.fit(X_train, y_train)
+
+        # Training metrics
+        y_pred = bst.predict(X_train)
+        train_acc = 1 - np.sum(np.abs(y_train - y_pred))/y_train.shape[0]
+        res.extend([train_acc, recall_score(y_train, y_pred), precision_score(y_train, y_pred)])
+
+        # Test metrics
+        y_pred_prob = bst.predict_proba(X_test)
+        y_pred = bst.predict(X_test)
+        res.append(roc_auc_score(y_test, y_pred_prob[:,1]))
+        res.extend([recall_score(y_test, y_pred), precision_score(y_test, y_pred)])
+        res.extend(confusion_matrix(y_test, y_pred).ravel())
+            
+        results.append(res)
+            
+    return np.array(results)
+
+def run_xgb():
+    # params = {'max_depth': 10, 'eta': 1, 'objective': 'binary:logistic', 'lambda': 100, 'eval_metric': 'aucpr'}
+    xgb_model = XGBClassifier(max_depth=10, learning_rate=1, reg_lambda=10, scale_pos_weight=55.6)
+    xgb_mean_res = train_predict_xgb(xgb_model, datasets_mean, 'mean')
+    xgb_forw_res = train_predict_xgb(xgb_model, datasets_forw, 'forw')
+    save_results(xgb_mean_res, 'baselines/XG_mean')
+    save_results(xgb_forw_res, 'baselines/XG_forw')
+
+# AdaBoost
+from sklearn.ensemble import GradientBoostingClassifier
+def run_adb():
+    ab_model = GradientBoostingClassifier(loss='exponential')
+    ab_mean_res = train_predict(ab_model, 'AB', datasets_mean, 'mean')
+    ab_forw_res = train_predict(ab_model, 'AB', datasets_forw, 'forw')
+    save_results(ab_mean_res, 'baselines/AB_mean')
+    save_results(ab_forw_res, 'baselines/AB_forw')
+
+# SVM
+from sklearn.svm import SVC
+def run_svm():
+    pass
+
+run_rlr()
+run_rf()
+# run_adb()
+run_xgb()
+# run_swm()
 
 # import keras
 # from keras.models import Sequential 

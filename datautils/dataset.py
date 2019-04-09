@@ -24,15 +24,19 @@ class Dataset():
         np.random.seed(42)
         np.random.shuffle(self.input_files)
         self.test_files = self.input_files[self.train_size+self.val_size:]
-        
         self.train_val_files = self.input_files[0:self.train_size+self.val_size]
+        
         # Shuffle train-validation data with provided random seed
         np.random.seed(self.seed)
         np.random.shuffle(self.train_val_files)
         self.train_files = self.train_val_files[0:self.train_size]
         self.val_files = self.train_val_files[self.train_size:self.train_size+self.val_size]
-        
         assert len(self.test_files)==self.test_size
+
+        # self.test_files = self.input_files[200:300]
+        # self.val_files = self.input_files[100:200]
+        # self.train_files = self.input_files[0:100]
+        
         print(f'Imputation mode = {"forward" if imputeForward else "mean"}')
         print("Processing train data...")
         self.train_data = Data(path, 
