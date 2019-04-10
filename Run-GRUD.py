@@ -14,6 +14,7 @@ from sklearn.metrics import roc_auc_score, confusion_matrix
 from prediction.GRUDModel.models import create_grud_model, load_grud_model
 from prediction.GRUDModel.callbacks import ModelCheckpointwithBestWeights
 from datautils.dataset import Dataset
+from datautils.helper import save_output
 
 #%%
 # set GPU usage for tensorflow backend
@@ -28,7 +29,7 @@ if K.backend() == 'tensorflow':
 # parse arguments
 ## general
 arg_parser = argparse.ArgumentParser()
-arg_parser.add_argument('--working_path', default='prediction\GRUDModel')
+arg_parser.add_argument('--working_path', default=os.path.join("prediction","GRUDModel"))
 
 ## data
 arg_parser.add_argument('dataset_name', default='physionet',
@@ -51,6 +52,10 @@ arg_parser.add_argument('--pretrained_model_file', default=None,
 arg_parser.add_argument('--epochs', type=int, default=100)
 arg_parser.add_argument('--early_stopping_patience', type=int, default=10)
 arg_parser.add_argument('--batch_size', type=int, default=100)
+arg_parser.add_argument('--impute_forward', type=int, default=0)
+arg_parser.add_argument('--seed', type=int, default=42)
+arg_parser.add_argument('--data', default="sepsis_data")
+arg_parser.add_argument('--imputation_mode', default="decay")
 
 ## set the actual arguments if running in notebook
 if not (__name__ == '__main__' and '__file__' in globals()):
@@ -67,12 +72,15 @@ else:
 print('Arguments:', ARGS)
 
 #%%
-dataset = Dataset("data/sepsis_data",
+dataset = Dataset("data/"+ARGS.data,
                     batchSize=100,
                     train_ratio=0.8,
                     normalize=True,
                     padding=True,
-                    imputeForward=True)
+                    imputeForward=(True if ARGS.impute_forward else False),
+                    seed=ARGS.seed)
+
+dataset.test_data.batchSize = 1
 
 #%%
 def roc_auc_score_mod(y_true, y_pred):
@@ -88,17 +96,19 @@ def auroc(y_true, y_pred):
 def remove_padding(y_true, y_pred, data):
     targets = []
     predictions = []
+    predictions_ind = []
     files = []
 
     for i in range(len(data.x_lengths)):
         targets.extend(list(y_true[i, 0:data.x_lengths[i]]))
         predictions.extend(list(y_pred[i, 0:data.x_lengths[i]]))
+        predictions_ind.append(list(y_pred[i, 0:data.x_lengths[i]]))
         files.append(data.files[i])
     
     targets = np.reshape(np.array(targets), (-1,1))
     predictions = np.reshape(np.array(predictions), (-1,1))
 
-    return targets, predictions, files
+    return targets, predictions, predictions_ind, files
 
 def get_auc(y_true, y_pred, data):
     targets = []
@@ -137,7 +147,9 @@ else:
                                 recurrent_dim=ARGS.recurrent_dim,
                                 hidden_dim=ARGS.hidden_dim,
                                 predefined_model=ARGS.model,
-                                use_bidirectional_rnn=ARGS.use_bidirectional_rnn
+                                use_bidirectional_rnn=ARGS.use_bidirectional_rnn,
+                                input_decay=('exp_relu' if ARGS.imputation_mode == "decay" else None),
+                                x_imputation=('raw' if ARGS.imputation_mode == "mean" else 'forward')
                                 )
     if i_fold == 0:
         model.summary()
@@ -150,7 +162,7 @@ else:
         validation_data=dataset.val_data.getBatchGenerator(shuffle=True),
         validation_steps=dataset.val_data.getSteps(),
         callbacks=[
-            EarlyStopping(patience=ARGS.early_stopping_patience),
+            EarlyStopping(monitor="val_loss", patience=ARGS.early_stopping_patience, restore_best_weights=True),
             ModelCheckpointwithBestWeights(
                 file_dir=os.path.join(ARGS.working_path, 'model', timestamp + '_' + str(i_fold))
             ),
@@ -181,7 +193,7 @@ dataset_list = [
 ]
 processed_list = [remove_padding(ty, py, d) for ty, py, d in zip(true_y_list, pred_y_list, dataset_list)]
 #auc_score_list = [get_auc(ty, py, d) for ty, py, d in zip(true_y_list, pred_y_list, dataset_list)] # [3, n_task]
-auc_score_list = [roc_auc_score(t, p) for t,p,f in processed_list] # [3, n_task]
+auc_score_list = [roc_auc_score(t, p) for t,p,_,_ in processed_list] # [3, n_task]
 print('AUC scores (train,val,test): {}'.format(auc_score_list))
 pred_y_list_all.append(pred_y_list)
 auc_score_list_all.append(auc_score_list)
@@ -199,7 +211,7 @@ np.savez_compressed(os.path.join(result_path, 'predictions.npz'),
 np.savez_compressed(os.path.join(result_path, 'auroc_score.npz'),
                     auc_score_list_all=auc_score_list_all)
 
-for (ty, py, _) in processed_list:
+for (ty, py, _, _) in processed_list:
     print('-'*20)
     c_m = confusion_matrix(ty, np.array(py > 0.5).astype(int))
     print(c_m)
@@ -209,5 +221,10 @@ for (ty, py, _) in processed_list:
     print(f"TPR/Sensitivity/Recall = {TPR}")
     TNR = c_m[0,0] / c_m[0].sum()
     print(f"TNR/Specificity = {TNR}")
+
+print("Saving output...")
+
+test_ty, test_py, test_py_ind, test_files = processed_list[2]
+save_output(test_py_ind, test_files, "results", "GRU-D", ARGS.imputation_mode, seed=ARGS.seed, threshold=0.5)
 
 print('Finished!', '='*20)

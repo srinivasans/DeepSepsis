@@ -64,6 +64,10 @@ def compute_scores_2019(label_directory, prediction_directory):
             prediction_files.append(filename)
     prediction_files = sorted(prediction_files)
 
+    # Added by Sneha
+    ### HACK!!!!! BECAUSE FRAMEWORK ONLY PREDICTS ON 4000 BUT THERE ARE 4033 IN THE TEST SET!!
+    label_files = prediction_files
+
     if len(label_files) != len(prediction_files):
         raise Exception('Numbers of labels and predictions must be the same.')
 
@@ -111,8 +115,12 @@ def compute_scores_2019(label_directory, prediction_directory):
     predictions   = np.concatenate(cohort_predictions)
     probabilities = np.concatenate(cohort_probabilities)
 
-    auroc, auprc        = compute_auc(labels, probabilities)
-    accuracy, f_measure = compute_accuracy_f_measure(labels, predictions)
+    # Added by Sneha
+    auroc, auprc, thresholds, tpr, fpr = compute_auc(labels, probabilities)
+
+    # auroc, auprc = compute_auc(labels, probabilities)
+
+    accuracy, f_measure, tn, fp, fn, tp = compute_accuracy_f_measure(labels, predictions)
 
     # Compute utility.
     observed_utilities = np.zeros(num_files)
@@ -150,7 +158,10 @@ def compute_scores_2019(label_directory, prediction_directory):
 
     normalized_observed_utility = (unnormalized_observed_utility - unnormalized_inaction_utility) / (unnormalized_best_utility - unnormalized_inaction_utility)
 
-    return auroc, auprc, accuracy, f_measure, normalized_observed_utility
+    # return auroc, auprc, accuracy, f_measure, normalized_observed_utility
+
+    # Added by Sneha
+    return auroc, auprc, accuracy, f_measure, normalized_observed_utility, thresholds, tpr, fpr, tn, fp, fn, tp
 
 # The load_column function loads a column from a table.
 #
@@ -315,7 +326,9 @@ def compute_auc(labels, predictions):
         auroc += 0.5 * (tpr[j + 1] - tpr[j]) * (tnr[j + 1] + tnr[j])
         auprc += (tpr[j + 1] - tpr[j]) * ppv[j + 1]
 
-    return auroc, auprc
+    # return auroc, auprc
+    # Added by Sneha
+    return auroc, auprc, thresholds, tpr, 1-tnr
 
 # The compute_accuracy_f_measure function computes the accuracy and F-measure
 # for a patient.
@@ -387,7 +400,7 @@ def compute_accuracy_f_measure(labels, predictions):
     else:
         f_measure = 1.0
 
-    return accuracy, f_measure
+    return accuracy, f_measure, tn, fp, fn, tp
 
 # The compute_prediction_utility function computes the total time-dependent
 # utility for a patient.

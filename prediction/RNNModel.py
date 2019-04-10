@@ -84,20 +84,20 @@ class RNNModel():
     def getModelDir(self, epoch):
         return "{}_{}_{}_{}/epoch{}".format(self.experiment, self.imputation_method,
                                             self.seed, self.normalize, epoch)
-    
-    def RNN(self):
+
+    def RNN(self, x, m, delta, mean, x_lengths):
         return None
-    
+
     def build(self):
         self.pred = self.RNN(self.x, self.m, self.delta, self.mean, self.x_lengths)
         self.output = tf.nn.sigmoid(self.pred)
-        
+
         positive_class = tf.reduce_sum(tf.cast((self.y>0.5), dtype=tf.float32))
         padding = tf.reduce_sum(tf.cast((self.y_mask<0.5), dtype=tf.float32))
         negative_class = tf.reduce_sum(tf.cast((self.y<0.5), dtype=tf.float32))-padding
 
         self.class_ratio = (55.6*negative_class)/((negative_class))  #- Change class ratio - left for experimentation
-        
+
         self.utility = (self.y*self.output)*self.utp + (self.y*(1.0-self.output))*self.ufn + ((1.0-self.y)*self.output)*self.ufp
         self.utility= tf.reduce_sum(self.y_mask*self.utility)
         self.u_nopred = tf.reduce_sum(self.y_mask*self.y*self.ufn)
@@ -109,12 +109,17 @@ class RNNModel():
         #self.act = self.utility
         self.act = self.y_mask*self.act
         #self.act = self.act*(self.utp-self.ufp-self.ufn) # Weight by the utility loss
+<<<<<<< HEAD
         self.loss = tf.reduce_sum(self.act)/tf.reduce_sum(self.x_lengths)
         
+=======
+        self.loss = tf.reduce_mean(self.act)
+
+>>>>>>> 1523c8483c26da0a2775e027f70dbd5f2e8a3bb7
         # ce = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=self.target,logits=self.pred)
         # self.loss = tf.reduce_sum(ce*self.ymask)/self.batch_size
         self.train_op = tf.train.AdamOptimizer(self.lr).minimize(self.loss)
- 
+
         self.y_pred = tf.cast(((self.output*self.y_mask)>self.threshold),dtype=tf.int32)
         self.accuracy, self.acc_update = tf.metrics.accuracy(labels=self.y,
                                                             predictions=self.y_pred)
@@ -146,11 +151,11 @@ class RNNModel():
         uopt_sum = tf.summary.scalar("Utility Optimal", self.u_nopred)
 
         self.sum=tf.summary.merge([loss_sum, acc_sum, tp_sum, tpr_sum, fpr_sum, fp_sum, utility_sum, norm_utility_sum, unopred_sum, uopt_sum])
-        
+
         self.train_board = tf.summary.FileWriter(self.log_dir + "-train" , self.sess.graph)
         self.val_board = tf.summary.FileWriter(self.log_dir + "-val", self.sess.graph)
 
-    
+
     def load_model(self, epoch, checkpoint_dir=None):
         import re
         import os
@@ -168,7 +173,7 @@ class RNNModel():
         else:
             print(" [*] Checkpoint not found")
             return False, 0
-    
+
     def save_model(self,epoch,step):
         import os
         checkpoint_dir = os.path.join(self.checkpoint_dir, self.getModelDir(epoch))
@@ -178,7 +183,7 @@ class RNNModel():
 
     def save_output(self,predictions,filenames):
         helper.save_output(predictions,filenames,self.result_path,self.experiment, self.imputation_method, self.seed, self.threshold)
-            
+
 
     def train(self):
         tf.global_variables_initializer().run()
@@ -199,8 +204,8 @@ class RNNModel():
                     self.x: train_x,
                     self.y: train_y,
                     self.m: train_m,
-                    self.delta: train_delta, 
-                    self.x_lengths: train_xlen,                   
+                    self.delta: train_delta,
+                    self.x_lengths: train_xlen,
                     self.mean: dataset.mean,
                     self.y_mask:y_mask,
                     self.utp:utp,
@@ -212,13 +217,13 @@ class RNNModel():
                 counter += 1
                 self.train_board.add_summary(summary_str, counter)
             epochcount+=1
-            
+
             if epochcount%1==0:
                 self.save_model(epochcount, epochcount)
             val_counter = counter
             acc, auc, val_loss, tp, fp, tn, fn, val_counter = self.test(counter=val_counter)
             print("epoch is : %2.2f, Accuracy: %.8f, AUC: %.8f, TrainLoss: %.8f, ValLoss: %.8f, CR: %.8f" % (epochcount, acc, auc, loss, val_loss, cr))
-        
+
             # Early Stopping
             if(auc > max_auc):
                 max_auc = auc
@@ -226,7 +231,7 @@ class RNNModel():
                 best_epoch = epochcount
             else:
                 early_stopping_counter+=1
-            
+
             if early_stopping_counter >= self.early_stopping_patience:
                 print("Early Stopping Training : Max AUC = %f , %d"%(max_auc, best_epoch))
                 break
@@ -239,7 +244,7 @@ class RNNModel():
             dataset = self.validation_data
         else: #test
             dataset = self.test_data
-        
+
         start_time=time.time()
         dataset.shuffle()
         target = []
@@ -275,7 +280,7 @@ class RNNModel():
                 predictions.extend(list(pred[i, 0:test_xlen[i]]))
                 predictions_ind.append(list(pred[i, 0:test_xlen[i]]))
                 test_files.append(files[i])
-            
+
             if generate_files:
                 self.save_output(predictions_ind,test_files)
 
@@ -292,4 +297,3 @@ class RNNModel():
         else:
             return acc, auc, tp, fp, tn, fn, tp/(tp+fn), tn/(tn+fp)
 
-    
