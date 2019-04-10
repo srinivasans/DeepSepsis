@@ -35,9 +35,9 @@ class Dataset():
 
         assert len(self.test_files)==self.test_size
 
-        self.test_files = self.input_files[200:300]
-        self.val_files = self.input_files[100:200]
-        self.train_files = self.input_files[0:100]
+        # self.test_files = self.input_files[100:150]
+        # self.val_files = self.input_files[50:100]
+        # self.train_files = self.input_files[0:50]
         
         print(f'Imputation mode = {"forward" if imputeForward else "mean"}')
         print("Processing train data...")
