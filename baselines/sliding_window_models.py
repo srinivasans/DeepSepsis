@@ -145,8 +145,8 @@ def train_predict_xgb(model, data, impute_method):
 
         # Get Data
         X_train, y_train = createSWData(data.train_data.x, data.train_data.y, ws)
-        X_val, y_val = createSWData(data.train_data.x, data.train_data.y, ws)
-        X_test, y_test = createSWData(data.train_data.x, data.train_data.y, ws)
+        X_val, y_val = createSWData(data.val_data.x, data.val_data.y, ws)
+        # X_test, y_test = createSWData(data.test_data.x, data.test_data.y, ws)
         dtrain = xgb.DMatrix(X_train, label=y_train)
         dval = xgb.DMatrix(X_val, label=y_val)
         dtest = xgb.DMatrix(X_test, label=y_test)
@@ -161,11 +161,11 @@ def train_predict_xgb(model, data, impute_method):
         res.extend([train_acc, recall_score(y_train, y_pred), precision_score(y_train, y_pred)])
 
         # Test metrics
-        y_pred_prob = bst.predict_proba(X_test)
-        y_pred = bst.predict(X_test)
-        res.append(roc_auc_score(y_test, y_pred_prob[:,1]))
-        res.extend([recall_score(y_test, y_pred), precision_score(y_test, y_pred)])
-        res.extend(confusion_matrix(y_test, y_pred).ravel())
+        y_pred_prob = bst.predict_proba(X_val)
+        y_pred = bst.predict(X_val)
+        res.append(roc_auc_score(y_val, y_pred_prob[:,1]))
+        res.extend([recall_score(y_val, y_pred), precision_score(y_val, y_pred)])
+        res.extend(confusion_matrix(y_val, y_pred).ravel())
             
         results.append(res)
             
@@ -198,12 +198,12 @@ def run_svm():
     save_results(svm_forw_res, 'baselines/SVM_forw')
 
 # Run models
-print("Running RLR..")
-run_rlr()
-print("Running RF..")
-run_rf()
-print("Running AB..")
-run_adb()
+# print("Running RLR..")
+# run_rlr()
+# print("Running RF..")
+# run_rf()
+# print("Running AB..")
+# run_adb()
 print("Running XGB..")
 run_xgb()
 print("Running SVM..")
