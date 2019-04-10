@@ -107,14 +107,13 @@ def plot_metric(metrics_path, models, metric, type, plot_path):
     if not os.path.exists(metric_dir):
         os.makedirs(metric_dir)
 
-    plt.savefig('{}/{}.png'.format(metric_dir, metric))
+    plt.savefig('{}/{}-{}.png'.format(metric_dir, type, metric))
 
     plt.close()
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Arguments for sepsis prediction')
-    parser.add_argument('--experiment', type=str, default='LSTMM')
     parser.add_argument('--metrics_path', type=str, default='metrics')
     parser.add_argument('--plot_path', type=str, default='plots')
 
