@@ -120,7 +120,7 @@ def save_results(res, path):
 # Regularized Logistic Regression
 from sklearn.linear_model import LogisticRegression, LogisticRegressionCV
 def run_rlr():
-    lr_model = LogisticRegressionCV(cv=5, solver='lbfgs', max_iter=1000, class_weight='balanced', verbose=1, n_jobs=-1)
+    lr_model = LogisticRegression(C=0.00001, solver='lbfgs', max_iter=500, class_weight='balanced')
     rlr_mean_res = train_predict(lr_model, 'RLR', datasets_mean, 'mean')
     rlr_forw_res = train_predict(lr_model, 'RLR', datasets_forw, 'forw')
     save_results(rlr_mean_res, 'baselines/RLR_mean')
@@ -129,7 +129,7 @@ def run_rlr():
 # Random Forest 
 from sklearn.ensemble import RandomForestClassifier
 def run_rf(utility_predict=False):
-    rf_model = RandomForestClassifier(n_estimators=25, max_depth=5, class_weight='balanced', n_jobs=-1)
+    rf_model = RandomForestClassifier(n_estimators=40, max_depth=5, class_weight='balanced', n_jobs=-1)
     if not utility_predict:
         rf_mean_res = train_predict(rf_model, 'RF', datasets_mean, 'mean')
         rf_forw_res = train_predict(rf_model, 'RF', datasets_forw, 'forw')
@@ -180,7 +180,7 @@ def train_predict_xgb(model, data, impute_method):
     return np.array(results)
 
 def run_xgb():
-    xgb_model = XGBClassifier(n_estimators=25, max_depth=5, learning_rate=1, reg_lambda=1000, scale_pos_weight=55.6, n_jobs=-1)
+    xgb_model = XGBClassifier(n_estimators=40, max_depth=5, learning_rate=1, reg_lambda=1000, scale_pos_weight=55.6, n_jobs=-1)
     xgb_mean_res = train_predict_xgb(xgb_model, datasets_mean, 'mean')
     xgb_forw_res = train_predict_xgb(xgb_model, datasets_forw, 'forw')
     save_results(xgb_mean_res, 'baselines/XG_mean')
@@ -249,15 +249,15 @@ datasets_mean = dataset.Dataset('../data', train_ratio=0.8, maxLength=336, paddi
 datasets_forw = dataset.Dataset('../data', train_ratio=0.8, maxLength=336, imputeForward=True, calculateDelay=False, padding=False)
 
 print("Running RLR..")
-run_rlr(utility_predict=False)
-print("Running RF..")
-run_rf(utility_predict=False)
+run_rlr()
+# print("Running RF..")
+# run_rf(utility_predict=False)
 # print("Running AB..")
 # run_adb(utility_predict=True)
-print("Running XGB..")
-run_xgb()
-print("Running SVM..")
-run_svm(utility_predict=False)
+# print("Running XGB..")
+# run_xgb()
+# print("Running SVM..")
+# run_svm()
 # print("Running NN..")
 # run_nn(datasets_mean, 6, 'mean')
 # run_nn(datasets_forw, 6, 'forw')
