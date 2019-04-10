@@ -78,7 +78,7 @@ dataset = Dataset("data/"+ARGS.data,
                     imputeForward=(True if ARGS.impute_forward else False),
                     seed=ARGS.seed)
 
-#dataset.test_data.batchSize = 1
+dataset.test_data.batchSize = 1
 
 #%%
 def roc_auc_score_mod(y_true, y_pred):
@@ -156,7 +156,7 @@ else:
         validation_data=dataset.val_data.getBatchGenerator(shuffle=True),
         validation_steps=dataset.val_data.getSteps(),
         callbacks=[
-            EarlyStopping(monitor="val_auroc", patience=ARGS.early_stopping_patience, restore_best_weights=True),
+            EarlyStopping(monitor="val_loss", patience=ARGS.early_stopping_patience, restore_best_weights=True),
             ModelCheckpointwithBestWeights(
                 file_dir=os.path.join(ARGS.working_path, 'model', timestamp + '_' + str(i_fold))
             ),
