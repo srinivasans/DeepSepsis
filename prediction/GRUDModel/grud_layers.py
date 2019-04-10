@@ -98,7 +98,8 @@ class GRUDCell(GRUCell):
                 name='input_decay_kernel',
                 initializer=self.decay_initializer,
                 regularizer=self.decay_regularizer,
-                constraint=self.decay_constraint
+                constraint=self.decay_constraint,
+                trainable=True
             )
             if self.use_decay_bias:
                 self.input_decay_bias = self.add_weight(
@@ -106,7 +107,8 @@ class GRUDCell(GRUCell):
                     name='input_decay_bias',
                     initializer=self.bias_initializer,
                     regularizer=self.bias_regularizer,
-                    constraint=self.bias_constraint
+                    constraint=self.bias_constraint,
+                    trainable=True
                 )
         if self.hidden_decay is not None:
             self.hidden_decay_kernel = self.add_weight(
@@ -114,7 +116,8 @@ class GRUDCell(GRUCell):
                 name='hidden_decay_kernel',
                 initializer=self.decay_initializer,
                 regularizer=self.decay_regularizer,
-                constraint=self.decay_constraint
+                constraint=self.decay_constraint,
+                trainable=True
             )
             if self.use_decay_bias:
                 self.hidden_decay_bias = self.add_weight(
@@ -122,7 +125,8 @@ class GRUDCell(GRUCell):
                     name='hidden_decay_bias',
                     initializer=self.bias_initializer,
                     regularizer=self.bias_regularizer,
-                    constraint=self.bias_constraint
+                    constraint=self.bias_constraint,
+                    trainable=True
                 )
         if self.feed_masking:
             self.masking_kernel = self.add_weight(
@@ -130,7 +134,8 @@ class GRUDCell(GRUCell):
                 name='masking_kernel',
                 initializer=self.kernel_initializer,
                 regularizer=self.kernel_regularizer,
-                constraint=self.kernel_constraint
+                constraint=self.kernel_constraint,
+                trainable=True
             )
             if self.masking_decay is not None:
                 self.masking_decay_kernel = self.add_weight(
@@ -138,7 +143,8 @@ class GRUDCell(GRUCell):
                     name='masking_decay_kernel',
                     initializer=self.decay_initializer,
                     regularizer=self.decay_regularizer,
-                    constraint=self.decay_constraint
+                    constraint=self.decay_constraint,
+                    trainable=True
                 )
                 if self.use_decay_bias:
                     self.masking_decay_bias = self.add_weight(
@@ -146,7 +152,8 @@ class GRUDCell(GRUCell):
                         name='masking_decay_bias',
                         initializer=self.bias_initializer,
                         regularizer=self.bias_regularizer,
-                        constraint=self.bias_constraint
+                        constraint=self.bias_constraint,
+                        trainable=True
                     )
             self.masking_kernel_z = self.masking_kernel[:, :self.units]
             self.masking_kernel_r = self.masking_kernel[:, self.units:self.units * 2]
@@ -351,7 +358,7 @@ class GRUD(GRU):
                  use_decay_bias=True,
                  feed_masking=True,
                  masking_decay=None,
-                 decay_initializer='zeros',
+                 decay_initializer='random_normal',
                  decay_regularizer=None,
                  decay_constraint=None,
                  **kwargs):
