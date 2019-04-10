@@ -2,6 +2,7 @@ import os, sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 from datautils import dataset
 import numpy as np 
+import pandas as pd
 import sklearn 
 from sklearn.metrics import roc_auc_score, f1_score, confusion_matrix, precision_score, recall_score, roc_curve
 import multiprocessing as mp 
@@ -29,13 +30,21 @@ def createSWData(X, y, window_size):
     
     return np.array(X_train), np.array(y_train)
 
-def utility_predict(model, model_type, test_data, window_size, impute_method):
-    X_test, y_test, files = test_data.x, test_data.y, test_data.test_files
+def utility_train_predict(model, model_type, data, window_size, impute_method, seed):
+    # Train model 
+    if model_type == 'RLR':
+        X_train, y_train = createSWData(np.abs(data.train_data.x), data.train_data.y, window_size)
+    else:
+        X_train, y_train = createSWData(data.train_data.x, data.train_data.y, window_size)
+
+    model = model.fit(X_train, y_train)
+
+    # Create test files for utility scores
+    X_test, y_test, files = data.test_data.x, data.test_data.y, data.test_data.files
     for i in range(X_test.shape[0]):
         X_sw = []
-        y_sw = []
         X_patient = X_test[i]
-        y_patient = y_test[i]
+        y_sw = y_test[i]
         
         # Append rows of values to top of df 
         mean_vals = np.mean(X_patient, axis=0)
@@ -49,7 +58,7 @@ def utility_predict(model, model_type, test_data, window_size, impute_method):
 
             x_i = np.reshape(window_data, (window_size*window_data.shape[1],))
             X_sw.append(x_i)
-            y_sw.append(y_patient[window_start+window_size-1])
+            # y_sw.append(y_test[i][window_start])
 
             window_start += 1
         
@@ -60,12 +69,12 @@ def utility_predict(model, model_type, test_data, window_size, impute_method):
         assert y_pred.shape[0] == y_sw.shape[0]
         
         # Save to file
-        if not os.path.isdir('results/%s/%s_%d'%(model_type, impute_method, window_size)):
-            os.mkdir('results/%s/%s_%d'%(model_type, impute_method, window_size))
+        if not os.path.isdir('results/%s/%s/seed_%d'%(model_type, impute_method, seed)):
+            os.makedirs('results/%s/%s/seed_%d'%(model_type, impute_method, seed))
             
         pred = np.transpose(np.vstack((y_pred_prob[:,1], y_pred)))
         pred_df = pd.DataFrame(pred, columns=["PredictedProbability", "PredictedLabel"])
-        pred_df.to_csv('results/%s/%s_%d/%s.psv'%(model_type, impute_method, window_size, files[i]), sep='|', index=False)
+        pred_df.to_csv('results/%s/%s/seed_%d/%s'%(model_type, impute_method, seed, files[i]), sep='|', index=False)
 
 def train_predict(model, model_label, data, impute_method):
 
@@ -82,19 +91,19 @@ def train_predict(model, model_label, data, impute_method):
         else:
             X_train, y_train = createSWData(data.train_data.x, data.train_data.y, ws)
 
-        model = model.fit(X_train, y_train)
+        trained_model = model.fit(X_train, y_train)
 
-        res.append(model.score(X_train, y_train))
-        y_pred = model.predict(X_train)
+        res.append(trained_model.score(X_train, y_train))
+        y_pred = trained_model.predict(X_train)
         res.extend([recall_score(y_train, y_pred), precision_score(y_train, y_pred)])
 
         X_test, y_test = createSWData(data.val_data.x, data.val_data.y, ws)
-        res.append(model.score(X_test, y_test))
+        res.append(trained_model.score(X_test, y_test))
 
-        y_pred_prob = model.predict_proba(X_test)
+        y_pred_prob = trained_model.predict_proba(X_test)
         res.append(roc_auc_score(y_test, y_pred_prob[:,1]))
 
-        y_pred = model.predict(X_test)
+        y_pred = trained_model.predict(X_test)
         res.extend([recall_score(y_test, y_pred), precision_score(y_test, y_pred)])
         res.extend(confusion_matrix(y_test, y_pred).ravel())
             
@@ -108,30 +117,28 @@ def save_results(res, path):
         for i in range(res.shape[0]):
             f.write( " ".join([str(v) for v in res[i,:]]) + '\n')
 
-# Get Data
-random_seed = [1, 21, 23, 30]
-impute_methods = ['mean', 'forward', 'DAE', 'kNN', "GRU-D"]
-datasets_mean = dataset.Dataset('../sepsis_data/all_data', train_ratio=0.8, maxLength=336, padding=False, calculateDelay=False)
-datasets_forw = dataset.Dataset('../sepsis_data/all_data', train_ratio=0.8, maxLength=336, imputeForward=True, calculateDelay=False, padding=False)
-
 # Regularized Logistic Regression
 from sklearn.linear_model import LogisticRegression, LogisticRegressionCV
 def run_rlr():
-    lr_model = LogisticRegression(C=0.0001, solver='lbfgs', max_iter=1000, class_weight='balanced')
+    lr_model = LogisticRegressionCV(cv=5, solver='lbfgs', max_iter=1000, class_weight='balanced')
     rlr_mean_res = train_predict(lr_model, 'RLR', datasets_mean, 'mean')
     rlr_forw_res = train_predict(lr_model, 'RLR', datasets_forw, 'forw')
     save_results(rlr_mean_res, 'baselines/RLR_mean')
     save_results(rlr_forw_res, 'baselines/RLR_forw')
-    # utility_predict(lr_model, 'RLR', data.test_data, ws, impute_method)
 
 # Random Forest 
 from sklearn.ensemble import RandomForestClassifier
-def run_rf():
-    rf_model = RandomForestClassifier(max_depth=10, class_weight='balanced')
-    rf_mean_res = train_predict(rf_model, 'RF', datasets_mean, 'mean')
-    rf_forw_res = train_predict(rf_model, 'RF', datasets_forw, 'forw')
-    save_results(rf_mean_res, 'baselines/RF_mean')
-    save_results(rf_forw_res, 'baselines/RF_forw')
+def run_rf(utility_predict=False):
+    rf_model = RandomForestClassifier(n_estimators=10, max_depth=25, class_weight='balanced', n_jobs=-1)
+    if not utility_predict:
+        rf_mean_res = train_predict(rf_model, 'RF', datasets_mean, 'mean')
+        rf_forw_res = train_predict(rf_model, 'RF', datasets_forw, 'forw')
+        save_results(rf_mean_res, 'baselines/RF_mean')
+        save_results(rf_forw_res, 'baselines/RF_forw')
+    else:
+        for rs in random_seeds:
+            data = dataset.Dataset('../sepsis_data/all_data', train_ratio=0.8, maxLength=336, padding=False, calculateDelay=False, seed=rs)
+            utility_train_predict(rf_model, 'RF', data, 5, 'mean', rs)
 
 # XGBoost
 import xgboost as xgb
@@ -172,17 +179,17 @@ def train_predict_xgb(model, data, impute_method):
     return np.array(results)
 
 def run_xgb():
-    xgb_model = XGBClassifier(n_estimators=10, max_depth=10, learning_rate=1, reg_lambda=10, scale_pos_weight=55.6)
+    xgb_model = XGBClassifier(n_estimators=10, max_depth=5, learning_rate=1, reg_lambda=1000, scale_pos_weight=55.6, n_jobs=-1)
     xgb_mean_res = train_predict_xgb(xgb_model, datasets_mean, 'mean')
     xgb_forw_res = train_predict_xgb(xgb_model, datasets_forw, 'forw')
     save_results(xgb_mean_res, 'baselines/XG_mean')
     save_results(xgb_forw_res, 'baselines/XG_forw')
 
 # AdaBoost
-# THIS NEEDS TO BE FIXED ... 
+# THIS NEEDS TO BE Tuned ... 
 from sklearn.ensemble import GradientBoostingClassifier
 def run_adb():
-    ab_model = GradientBoostingClassifier(n_estimators=10, loss='exponential')
+    ab_model = GradientBoostingClassifier(n_estimators=25, loss='exponential')
     ab_mean_res = train_predict(ab_model, 'AB', datasets_mean, 'mean')
     ab_forw_res = train_predict(ab_model, 'AB', datasets_forw, 'forw')
     save_results(ab_mean_res, 'baselines/AB_mean')
@@ -196,18 +203,6 @@ def run_svm():
     svm_forw_res = train_predict(svm_model, "SVM", datasets_forw, 'forw')
     save_results(svm_mean_res, 'baselines/SVM_mean')
     save_results(svm_forw_res, 'baselines/SVM_forw')
-
-# Run models
-# print("Running RLR..")
-# run_rlr()
-# print("Running RF..")
-# run_rf()
-# print("Running AB..")
-# run_adb()
-print("Running XGB..")
-run_xgb()
-print("Running SVM..")
-run_svm()
 
 # Neural Network
 import keras
@@ -246,6 +241,22 @@ def run_nn(data, ws, imp):
     res = np.reshape(np.array(res), (1,len(res)))
     save_results(res, 'baselines/NN_%s'%imp)
 
+# Get Data and Run Models 
+random_seeds = [1, 21, 23, 30]
+impute_methods = ['mean', 'forward', 'DAE', 'kNN', "GRU-D"]
+datasets_mean = dataset.Dataset('../sepsis_data/all_data', train_ratio=0.8, maxLength=336, padding=False, calculateDelay=False)
+datasets_forw = dataset.Dataset('../sepsis_data/all_data', train_ratio=0.8, maxLength=336, imputeForward=True, calculateDelay=False, padding=False)
+
+# print("Running RLR..")
+# run_rlr(utility_predict=True)
+print("Running RF..")
+run_rf()
+# print("Running AB..")
+# run_adb(utility_predict=True)
+print("Running XGB..")
+run_xgb()
+# print("Running SVM..")
+# run_svm(utility_predict=True)
 print("Running NN..")
 run_nn(datasets_mean, 6, 'mean')
 run_nn(datasets_forw, 6, 'forw')
