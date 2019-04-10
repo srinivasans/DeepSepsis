@@ -61,7 +61,7 @@ class Dataset():
                                     maxLength=self.train_data.maxLength,
                                     missingRate=self.missingRate,
                                     minMaskEpoch=self.minMaskEpoch,
-                                    induceMissingness=False)
+                                    induceMissingness=True)
 
         self.test_data = ImputerData(path,
                                     files=self.test_files,

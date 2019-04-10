@@ -68,12 +68,30 @@ if __name__ == '__main__':
     config.gpu_options.allow_growth = True 
     
     with tf.Session(config=config) as sess:
-        model = GRUD.grud(sess,
-                    args=args,
-                    train_data=dataset.train_data,
-                    validation_data=dataset.val_data,
-                    test_data=dataset.test_data
-                    )
+        if args.celltype == "LSTM":
+                model = LSTM.lstm(sess,
+                                args=args,
+                                train_data=dataset.train_data,
+                                validation_data=dataset.val_data,
+                                test_data=dataset.test_data)
+        elif args.celltype == "GRU":
+                model = GRU.GRU(sess,
+                                args=args,
+                                train_data=dataset.train_data,
+                                validation_data=dataset.val_data,
+                                test_data=dataset.test_data)
+        elif args.celltype == "GRUM":
+                model = GRUM.GRUM(sess,
+                                args=args,
+                                train_data=dataset.train_data,
+                                validation_data=dataset.val_data,
+                                test_data=dataset.test_data)
+        elif args.celltype == "GRUD":
+                model = GRUD.GRUD(sess,
+                                args=args,
+                                train_data=dataset.train_data,
+                                validation_data=dataset.val_data,
+                                test_data=dataset.test_data)
         model.build()
         test_acc, test_auc, test_tp, test_fp, test_tn, test_fn, sens, spec = model.test(checkpoint_dir='checkpoint/GRUM_C_Mean_40k/GRUM_C_Mean_40k_0.001_100_True/epoch5', 
                                                                                 test_epoch=5, 
