@@ -197,54 +197,56 @@ def run_svm():
     save_results(svm_forw_res, 'baselines/SVM_forw')
 
 # Run models
-print("Running RLR..")
-run_rlr()
-print("Running RF..")
-run_rf()
-print("Running AB..")
-run_adb()
-print("Running XGB..")
-run_xgb()
-print("Running SVM..")
-run_svm()
+# print("Running RLR..")
+# run_rlr()
+# print("Running RF..")
+# run_rf()
+# print("Running AB..")
+# run_adb()
+# print("Running XGB..")
+# run_xgb()
+# print("Running SVM..")
+# run_svm()
 
-# import keras
-# from keras.models import Sequential 
-# from keras.layers import Dense, Dropout
-# from keras.callbacks import EarlyStopping
-# from sklearn.utils import class_weight
+import keras
+from keras.models import Sequential 
+from keras.layers import Dense, Dropout
+from keras.callbacks import EarlyStopping
+from sklearn.utils import class_weight
 
-# nn_results = []
+def run_nn(data, ws, imp):
+    res = [ws, imp]
 
-# for ws in range(3,7):
-#     nn_model = Sequential()
-#     nn_model.add(Dense(432, activation='relu', input_dim=ws*34))
-#     nn_model.add(Dropout(rate=0.5))
-#     nn_model.add(Dense(216, activation='relu'))
-#     nn_model.add(Dropout(rate=0.5))
-#     nn_model.add(Dense(108, activation='relu'))
-#     nn_model.add(Dropout(rate=0.5))
-#     nn_model.add(Dense(1, activation='sigmoid'))
-#     nn_model.compile(optimizer='Adam', loss='binary_crossentropy')
+    nn_model = Sequential()
+    nn_model.add(Dense(432, activation='relu', input_dim=ws*36))
+    nn_model.add(Dropout(rate=0.5))
+    nn_model.add(Dense(216, activation='relu'))
+    nn_model.add(Dropout(rate=0.5))
+    nn_model.add(Dense(108, activation='relu'))
+    nn_model.add(Dropout(rate=0.5))
+    nn_model.add(Dense(1, activation='sigmoid'))
+    nn_model.compile(optimizer='Adam', loss='binary_crossentropy')
+
+    X_train, y_train = createSWData(data.train_data.x, data.train_data.y, ws)
+    X_val, y_val = createSWData(data.val_data.x, data.val_data.y, ws)
+
+    cw = class_weight.compute_class_weight('balanced', np.unique(y_train), y_train)
+    early_stop = EarlyStopping(patience=5)
+    nn_model.fit(X_train, y_train, epochs=1, verbose=0, validation_data=(X_val, y_val), 
+                    class_weight=cw, callbacks=[early_stop])
     
-#     for imp in ['mean', 'forw']:
-#         res = [ws, imp]
-#         X_train, y_train, _ = create_train_data(ws, imp)
-#         cw = class_weight.compute_class_weight('balanced', np.unique(y_train), y_train)
-#         nn_model.fit(X_train, y_train, epochs=100, verbose=0, validation_split=0.3, class_weight=cw)
-        
-#         X_test, y_test = predict(nn_model, "NN", ws, imp)
-#         y_pred = nn_model.predict(X_test)
-#         res.append(roc_auc_score(y_test, y_pred))
-#         res.extend([recall_score(y_test, (y_pred>0.5)), precision_score(y_test, (y_pred>0.5))])
-#         res.extend(confusion_matrix(y_test, (y_pred>0.5)).ravel())
-        
-#         nn_results.append(res)
+    X_test, y_test = createSWData(data.test_data.x, data.test_data.y, ws)
+    y_pred = nn_model.predict(X_test)
+    res.append(roc_auc_score(y_test, y_pred))
+    res.extend([recall_score(y_test, (y_pred>0.5)), precision_score(y_test, (y_pred>0.5))])
+    res.extend(confusion_matrix(y_test, (y_pred>0.5)).ravel())
 
-# nn_results = np.array(nn_results)
-# nn_results.tofile('../results/nn_results', sep='\n')
+    res = np.reshape(np.array(res), (1,len(res)))
+    save_results(res, 'baselines/NN_%s'%imp)
 
-
+print("Running NN..")
+run_nn(datasets_mean, 6, 'mean')
+run_nn(datasets_forw, 6, 'forw')
 
 
 
