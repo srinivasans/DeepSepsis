@@ -109,13 +109,8 @@ class RNNModel():
         #self.act = self.utility
         self.act = self.y_mask*self.act
         #self.act = self.act*(self.utp-self.ufp-self.ufn) # Weight by the utility loss
-<<<<<<< HEAD
         self.loss = tf.reduce_sum(self.act)/tf.reduce_sum(self.x_lengths)
         
-=======
-        self.loss = tf.reduce_mean(self.act)
-
->>>>>>> 1523c8483c26da0a2775e027f70dbd5f2e8a3bb7
         # ce = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=self.target,logits=self.pred)
         # self.loss = tf.reduce_sum(ce*self.ymask)/self.batch_size
         self.train_op = tf.train.AdamOptimizer(self.lr).minimize(self.loss)
