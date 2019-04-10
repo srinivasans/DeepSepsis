@@ -111,8 +111,8 @@ def save_results(res, path):
 # Get Data
 random_seed = [1, 21, 23, 30]
 impute_methods = ['mean', 'forward', 'DAE', 'kNN', "GRU-D"]
-datasets_mean = dataset.Dataset('/u/angadk/ml4h/data', train_ratio=0.8, maxLength=336, padding=False, calculateDelay=False)
-datasets_forw = dataset.Dataset('/u/angadk/ml4h/data', train_ratio=0.8, maxLength=336, imputeForward=True, calculateDelay=False, padding=False)
+datasets_mean = dataset.Dataset('../sepsis_data/all_data', train_ratio=0.8, maxLength=336, padding=False, calculateDelay=False)
+datasets_forw = dataset.Dataset('../sepsis_data/all_data', train_ratio=0.8, maxLength=336, imputeForward=True, calculateDelay=False, padding=False)
 
 # Regularized Logistic Regression
 from sklearn.linear_model import LogisticRegression, LogisticRegressionCV
