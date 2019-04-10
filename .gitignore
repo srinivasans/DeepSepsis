@@ -114,3 +114,6 @@ run.out
 data/challenge_data
 data/small_challenge_data
 data/temp_hazard
+
+data/small_challenge_data_test
+data/challenge_data_test

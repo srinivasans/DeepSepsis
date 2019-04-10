@@ -3,8 +3,11 @@ import numpy as np
 from shutil import copyfile
 from . import dataset
 
-def create_test_folder(data='data/challenge_data', test_folder='data/challenge_test_data'):
+def create_test_folder(data='data/challenge_data'):
     datasets = dataset.Dataset(data, train_ratio=0.8)
+    test_folder = data + "_test"
+    if not os.path.exists(test_folder):
+        os.makedirs(test_folder)
     for file in datasets.test_data.files:
         copyfile(os.path.join(data,file), os.path.join(test_folder, file))
 
