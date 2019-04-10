@@ -111,8 +111,8 @@ def save_results(res, path):
 # Get Data
 random_seed = [1, 21, 23, 30]
 impute_methods = ['mean', 'forward', 'DAE', 'kNN', "GRU-D"]
-datasets_mean = dataset.Dataset('../sepsis_data/all_data', train_ratio=0.8, maxLength=336, padding=False, calculateDelay=False)
-datasets_forw = dataset.Dataset('../sepsis_data/all_data', train_ratio=0.8, maxLength=336, imputeForward=True, calculateDelay=False, padding=False)
+datasets_mean = dataset.Dataset('/u/angadk/ml4h/data', train_ratio=0.8, maxLength=336, padding=False, calculateDelay=False)
+datasets_forw = dataset.Dataset('/u/angadk/ml4h/data', train_ratio=0.8, maxLength=336, imputeForward=True, calculateDelay=False, padding=False)
 
 # Regularized Logistic Regression
 from sklearn.linear_model import LogisticRegression, LogisticRegressionCV
@@ -234,7 +234,7 @@ def run_nn(data, ws, imp):
 
     cw = class_weight.compute_class_weight('balanced', np.unique(y_train), y_train)
     early_stop = EarlyStopping(patience=5)
-    nn_model.fit(X_train, y_train, epochs=1, verbose=0, validation_data=(X_val, y_val), 
+    nn_model.fit(X_train, y_train, epochs=100, verbose=0, validation_data=(X_val, y_val), 
                     class_weight=cw, callbacks=[early_stop])
     
     X_test, y_test = createSWData(data.test_data.x, data.test_data.y, ws)
