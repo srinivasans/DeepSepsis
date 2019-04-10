@@ -158,9 +158,15 @@ if __name__ == '__main__':
             # Reproducing validation results from best epoch
             val_acc, val_auc, val_loss, val_tp, val_fp, val_tn, val_fn, val_counter = model.test(val=True, test_epoch=best_epoch, load_checkpoint=True)
             print(val_auc)
+<<<<<<< HEAD
+            #assert val_auc == pytest.approx(max_auc)
+            
+=======
             # assert val_auc == pytest.approx(max_auc)
 
+>>>>>>> 1523c8483c26da0a2775e027f70dbd5f2e8a3bb7
             # Test model and generate results for test data
+            model.test_data.batchSize = 1
             test_acc, test_auc, test_tp, test_fp, test_tn, test_fn, test_sens, test_spec = model.test(val=False, test_epoch=best_epoch, generate_files=True, load_checkpoint=True)
 
         result_file = open(os.path.join(args.result_path, args.experiment, args.imputation_method, ('_').join(['seed',str(args.seed)]), 'result.auc'),"w")
