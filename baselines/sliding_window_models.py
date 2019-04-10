@@ -197,17 +197,18 @@ def run_svm():
     save_results(svm_forw_res, 'baselines/SVM_forw')
 
 # Run models
-# print("Running RLR..")
-# run_rlr()
-# print("Running RF..")
-# run_rf()
-# print("Running AB..")
-# run_adb()
-# print("Running XGB..")
-# run_xgb()
-# print("Running SVM..")
-# run_svm()
+print("Running RLR..")
+run_rlr()
+print("Running RF..")
+run_rf()
+print("Running AB..")
+run_adb()
+print("Running XGB..")
+run_xgb()
+print("Running SVM..")
+run_svm()
 
+# Neural Network
 import keras
 from keras.models import Sequential 
 from keras.layers import Dense, Dropout
