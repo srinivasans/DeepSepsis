@@ -111,8 +111,8 @@ def save_results(res, path):
 # Get Data
 random_seed = [1, 21, 23, 30]
 impute_methods = ['mean', 'forward', 'DAE', 'kNN', "GRU-D"]
-datasets_mean = dataset.Dataset('../sepsis_data/all_data', train_ratio=0.8, maxLength=336, padding=False, calculateDelay=False)
-datasets_forw = dataset.Dataset('../sepsis_data/all_data', train_ratio=0.8, maxLength=336, imputeForward=True, calculateDelay=False, padding=False)
+datasets_mean = dataset.Dataset('../data', train_ratio=0.8, maxLength=336, padding=False, calculateDelay=False)
+datasets_forw = dataset.Dataset('../data', train_ratio=0.8, maxLength=336, imputeForward=True, calculateDelay=False, padding=False)
 
 # Regularized Logistic Regression
 from sklearn.linear_model import LogisticRegression, LogisticRegressionCV
@@ -149,7 +149,7 @@ def train_predict_xgb(model, data, impute_method):
         # X_test, y_test = createSWData(data.test_data.x, data.test_data.y, ws)
         dtrain = xgb.DMatrix(X_train, label=y_train)
         dval = xgb.DMatrix(X_val, label=y_val)
-        dtest = xgb.DMatrix(X_test, label=y_test)
+        # dtest = xgb.DMatrix(X_test, label=y_test)
 
         # Train model
         # evallist = evallist = [(dtrain, 'train'), (dval, 'eval')]
