@@ -109,8 +109,8 @@ class RNNModel():
         #self.act = self.utility
         self.act = self.y_mask*self.act
         #self.act = self.act*(self.utp-self.ufp-self.ufn) # Weight by the utility loss
-        self.loss = tf.reduce_mean(self.act)
-
+        self.loss = tf.reduce_sum(self.act)/tf.reduce_sum(self.x_lengths)
+        
         # ce = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=self.target,logits=self.pred)
         # self.loss = tf.reduce_sum(ce*self.ymask)/self.batch_size
         self.train_op = tf.train.AdamOptimizer(self.lr).minimize(self.loss)
@@ -234,7 +234,7 @@ class RNNModel():
         return max_auc, best_epoch
 
 
-    def test(self, counter=0, val=True, checkpoint_dir=None, test_epoch=100, generate_files=False, load_checkpoint=False):
+    def test(self, counter=0, val=True, checkpoint_dir=None, test_epoch=100, generate_files=False, load_checkpoint=False, evaluateMetrics=True):
         if val:
             dataset = self.validation_data
         else: #test
@@ -279,10 +279,13 @@ class RNNModel():
             if generate_files:
                 self.save_output(predictions_ind,test_files)
 
-        auc = metrics.roc_auc_score(np.array(target),np.array(predictions))
-        predictions = np.array(np.array(predictions)>self.threshold).astype(int)
-        acc = metrics.accuracy_score(np.array(target),np.array(predictions))
-        tn, fp, fn, tp = metrics.confusion_matrix(target, predictions).ravel()
+        auc=acc=predictions=tn=fp=fn=tp = 1.0
+        if evaluateMetrics:
+            auc = metrics.roc_auc_score(np.array(target),np.array(predictions))
+            predictions = np.array(np.array(predictions)>self.threshold).astype(int)
+            acc = metrics.accuracy_score(np.array(target),np.array(predictions))
+            tn, fp, fn, tp = metrics.confusion_matrix(target, predictions).ravel()
+        
         # Also compute utility score
         if val:
             return acc, auc, val_loss, tp, fp, tn, fn, counter

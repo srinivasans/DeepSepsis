@@ -51,7 +51,7 @@ def compute_scores_2019(label_directory, prediction_directory):
 
     # Find label and prediction files.
     label_files = []
-    for filename in os.listdir(label_directory):
+    for filename in os.listdir(prediction_directory):
         full_filename = os.path.join(label_directory, filename)
         if os.path.isfile(full_filename) and full_filename.endswith('.psv'):
             label_files.append(filename)
