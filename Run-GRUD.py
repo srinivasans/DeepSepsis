@@ -28,7 +28,7 @@ if K.backend() == 'tensorflow':
 # parse arguments
 ## general
 arg_parser = argparse.ArgumentParser()
-arg_parser.add_argument('--working_path', default='prediction\GRUDModel')
+arg_parser.add_argument('--working_path', default=os.path.join("prediction","GRUDModel"))
 
 ## data
 arg_parser.add_argument('dataset_name', default='physionet',
@@ -51,6 +51,9 @@ arg_parser.add_argument('--pretrained_model_file', default=None,
 arg_parser.add_argument('--epochs', type=int, default=100)
 arg_parser.add_argument('--early_stopping_patience', type=int, default=10)
 arg_parser.add_argument('--batch_size', type=int, default=100)
+arg_parser.add_argument('--impute_forward', type=int, default=0)
+arg_parser.add_argument('--seed', type=int, default=42)
+arg_parser.add_argument('--data', default="sepsis_data")
 
 ## set the actual arguments if running in notebook
 if not (__name__ == '__main__' and '__file__' in globals()):
@@ -67,12 +70,15 @@ else:
 print('Arguments:', ARGS)
 
 #%%
-dataset = Dataset("data/sepsis_data",
+dataset = Dataset("data/"+ARGS.data,
                     batchSize=100,
                     train_ratio=0.8,
                     normalize=True,
                     padding=True,
-                    imputeForward=True)
+                    imputeForward=(True if ARGS.impute_forward else False),
+                    seed=ARGS.seed)
+
+dataset.test_data.batchSize = 1
 
 #%%
 def roc_auc_score_mod(y_true, y_pred):
@@ -150,7 +156,7 @@ else:
         validation_data=dataset.val_data.getBatchGenerator(shuffle=True),
         validation_steps=dataset.val_data.getSteps(),
         callbacks=[
-            EarlyStopping(patience=ARGS.early_stopping_patience),
+            EarlyStopping(monitor="val_loss", patience=ARGS.early_stopping_patience, restore_best_weights=True),
             ModelCheckpointwithBestWeights(
                 file_dir=os.path.join(ARGS.working_path, 'model', timestamp + '_' + str(i_fold))
             ),

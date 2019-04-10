@@ -16,14 +16,15 @@ class Dataset():
         self.input_files = np.array(os.listdir(self.path))
         self.dataset_size = len(self.input_files)
         self.seed = seed
-         
+
         self.train_size = int(np.round(self.dataset_size*train_ratio))
         self.val_size = int(np.round(self.dataset_size*(1.0-train_ratio)/2.0))
         self.test_size = self.dataset_size - self.train_size - self.val_size
-        
+
         np.random.seed(42)
         np.random.shuffle(self.input_files)
         self.test_files = self.input_files[self.train_size+self.val_size:]
+
         self.train_val_files = self.input_files[0:self.train_size+self.val_size]
         
         # Shuffle train-validation data with provided random seed
@@ -31,6 +32,7 @@ class Dataset():
         np.random.shuffle(self.train_val_files)
         self.train_files = self.train_val_files[0:self.train_size]
         self.val_files = self.train_val_files[self.train_size:self.train_size+self.val_size]
+
         assert len(self.test_files)==self.test_size
 
         # self.test_files = self.input_files[200:300]
@@ -39,18 +41,18 @@ class Dataset():
         
         print(f'Imputation mode = {"forward" if imputeForward else "mean"}')
         print("Processing train data...")
-        self.train_data = Data(path, 
-                                files=self.train_files, 
-                                batchSize = self.batchSize, 
-                                isTrain=True, 
-                                normalize=self.normalize, 
-                                padding=self.padding, 
-                                mean = None, 
-                                std = None, 
+        self.train_data = Data(path,
+                                files=self.train_files,
+                                batchSize = self.batchSize,
+                                isTrain=True,
+                                normalize=self.normalize,
+                                padding=self.padding,
+                                mean = None,
+                                std = None,
                                 maxLength=maxLength,
                                 imputeForward=imputeForward,
                                 calculateDelay=calculateDelay)
-        
+
         print("Processing val data...")
         self.val_data = Data(path,
                                 files=self.val_files,
@@ -77,6 +79,6 @@ class Dataset():
                                 imputeForward=imputeForward,
                                 calculateDelay=calculateDelay)
 
-    
-        
+
+
 
