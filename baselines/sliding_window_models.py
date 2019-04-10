@@ -198,15 +198,15 @@ def run_svm():
 
 # Run models
 print("Running RLR..")
-# run_rlr()
+run_rlr()
 print("Running RF..")
-# run_rf()
+run_rf()
 print("Running AB..")
-# run_adb()
+run_adb()
 print("Running XGB..")
 run_xgb()
 print("Running SVM..")
-# run_svm()
+run_svm()
 
 # Neural Network
 import keras
@@ -233,7 +233,7 @@ def run_nn(data, ws, imp):
 
     cw = class_weight.compute_class_weight('balanced', np.unique(y_train), y_train)
     early_stop = EarlyStopping(patience=5)
-    nn_model.fit(X_train, y_train, epochs=1, verbose=0, validation_data=(X_val, y_val), 
+    nn_model.fit(X_train, y_train, epochs=100, verbose=0, validation_data=(X_val, y_val), 
                     class_weight=cw, callbacks=[early_stop])
     
     X_test, y_test = createSWData(data.test_data.x, data.test_data.y, ws)
