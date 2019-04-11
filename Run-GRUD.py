@@ -164,7 +164,7 @@ else:
         callbacks=[
             EarlyStopping(monitor="val_loss", patience=ARGS.early_stopping_patience, restore_best_weights=True),
             ModelCheckpointwithBestWeights(
-                file_dir=os.path.join(ARGS.working_path, 'model', timestamp + '_' + str(i_fold))
+                file_dir=os.path.join(ARGS.working_path, 'model', ARGS.imputation_mode + '_seed-' + str(ARGS.seed) + '_' + timestamp + '_' + str(i_fold))
             ),
             TensorBoard(
                 log_dir=os.path.join(ARGS.working_path, 'tb_logs', timestamp + '_' + str(i_fold))
@@ -172,7 +172,7 @@ else:
         ]
         )
     model.save(os.path.join(ARGS.working_path, 'model', 
-                            timestamp + '_' + str(i_fold), 'model.h5'))
+                            ARGS.imputation_mode + '_seed-' + str(ARGS.seed) + '_' + timestamp + '_' + str(i_fold), 'model.h5'))
 
 # Evaluate the model
 true_y_list = [
