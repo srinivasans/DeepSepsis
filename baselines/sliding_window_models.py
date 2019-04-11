@@ -191,13 +191,13 @@ def run_svm(utility_predict=False):
     save_results(svm_forw_res, 'baselines/SVM_forw')
 
 # Neural Network
-import keras
-from keras.models import Sequential 
-from keras.layers import Dense, Dropout
-from keras.callbacks import EarlyStopping
-from sklearn.utils import class_weight
+# import keras
+# from keras.models import Sequential 
+# from keras.layers import Dense, Dropout
+# from keras.callbacks import EarlyStopping
+# from sklearn.utils import class_weight
 
-def run_nn(data, ws, imp):
+# def run_nn(data, ws, imp):
     res = [ws, imp]
 
     nn_model = Sequential()
@@ -230,8 +230,8 @@ def run_nn(data, ws, imp):
 # Get Data and Run Models 
 random_seeds = [1, 21, 23, 30]
 impute_methods = ['mean', 'forward', 'DAE', 'kNN', "GRU-D"]
-datasets_mean = dataset.Dataset('../sepsis_data/all_data', train_ratio=0.8, maxLength=336, padding=False, calculateDelay=False)
-datasets_forw = dataset.Dataset('../sepsis_data/all_data', train_ratio=0.8, maxLength=336, imputeForward=True, calculateDelay=False, padding=False)
+# datasets_mean = dataset.Dataset('../sepsis_data/all_data', train_ratio=0.8, maxLength=336, padding=False, calculateDelay=False)
+# datasets_forw = dataset.Dataset('../sepsis_data/all_data', train_ratio=0.8, maxLength=336, imputeForward=True, calculateDelay=False, padding=False)
 
 # print("Running RLR..")
 # run_rlr()
