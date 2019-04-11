@@ -12,7 +12,7 @@ class Data():
     def __init__(self, path, files, batchSize = 100, 
                 isTrain=True, normalize=True, padding=True, 
                 mean = None, std = None, maxLength=0, 
-                imputeForward=False, calculateDelay=True):
+                imputeForward=False, calculateDelay=True, imputation_folder=None):
                 
         # Phase parameters
         self.path=path
@@ -23,6 +23,7 @@ class Data():
         self.batchSize = batchSize
         self.imputeForward = imputeForward
         self.calculateDelay = calculateDelay
+        self.imputationFolder = imputation_folder
 
         # Sepsis specific parameters
         self.features = {'HR':0, 'O2Sat':1, 'Temp':2,
@@ -104,6 +105,12 @@ class Data():
         print("* Reading data...")
         for input_file in tqdm(self.files):
             x,y,m,t,d = self.readFile(input_file)
+
+            if self.imputationFolder is not None:
+                self.path = self.imputationFolder
+                x_,y,m,t,d = self.readFile(input_file)
+                self.path = self.imputationFolder
+            
             self.x.append(x)
             self.y.append(y)
             self.m.append(m)
