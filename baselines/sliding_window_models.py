@@ -119,7 +119,7 @@ def save_results(res, path):
 # Regularized Logistic Regression
 from sklearn.linear_model import LogisticRegression, LogisticRegressionCV
 def run_rlr(utility_predict=False, rand_seed=None):
-    rlr_model = LogisticRegression(C=0.1, solver='lbfgs', max_iter=500, class_weight='balanced')
+    rlr_model = LogisticRegression(C=0.001, solver='lbfgs', max_iter=1000, class_weight='balanced')
     if not utility_predict:
         rlr_mean_res = train_predict(rlr_model, 'RLR', datasets_mean, 'mean')
         rlr_forw_res = train_predict(rlr_model, 'RLR', datasets_forw, 'forw')
@@ -132,7 +132,7 @@ def run_rlr(utility_predict=False, rand_seed=None):
 # Random Forest 
 from sklearn.ensemble import RandomForestClassifier
 def run_rf(utility_predict=False, rand_seed=None):
-    rf_model = RandomForestClassifier(n_estimators=50, max_depth=3, class_weight='balanced', n_jobs=-1)
+    rf_model = RandomForestClassifier(n_estimators=30, max_depth=5, class_weight='balanced', n_jobs=-1)
     if not utility_predict:
         rf_mean_res = train_predict(rf_model, 'RF', datasets_mean, 'mean')
         rf_forw_res = train_predict(rf_model, 'RF', datasets_forw, 'forw')
@@ -247,17 +247,17 @@ def run_nn(data, ws, imp):
 # Get Data and Run Models 
 random_seeds = [1, 21, 23, 30]
 impute_methods = ['mean', 'forward', 'DAE', 'kNN', "GRU-D"]
-datasets_mean = dataset.Dataset('../data', train_ratio=0.8, maxLength=336, padding=False, calculateDelay=False)
-datasets_forw = dataset.Dataset('../data', train_ratio=0.8, maxLength=336, imputeForward=True, calculateDelay=False, padding=False)
+# datasets_mean = dataset.Dataset('../data', train_ratio=0.8, maxLength=336, padding=False, calculateDelay=False)
+# datasets_forw = dataset.Dataset('../data', train_ratio=0.8, maxLength=336, imputeForward=True, calculateDelay=False, padding=False)
 
 # print("Running RLR..")
 # run_rlr()
-print("Running RF..")
-run_rf()
-print("Running XGB..")
-run_xgb()
-print("Running AB..")
-run_adb()
+# print("Running RF..")
+# run_rf()
+# print("Running XGB..")
+# run_xgb()
+# print("Running AB..")
+# run_adb()
 # print("Running SVM..")
 # run_svm(utility_predict=False)
 # print("Running NN..")
@@ -265,16 +265,16 @@ run_adb()
 # run_nn(datasets_forw, 6, 'forw')
 
 # Run utility predictions
-# for rs in random_seeds:
-    # datasets_mean = dataset.Dataset('../data', train_ratio=0.8, maxLength=336, padding=False, calculateDelay=False, seed=rs)
-    # datasets_forw = dataset.Dataset('../data', train_ratio=0.8, maxLength=336, imputeForward=True, calculateDelay=False, padding=False, seed=rs)
+for rs in random_seeds:
+    datasets_mean = dataset.Dataset('../data', train_ratio=0.8, maxLength=336, padding=False, calculateDelay=False, seed=rs)
+    datasets_forw = dataset.Dataset('../data', train_ratio=0.8, maxLength=336, imputeForward=True, calculateDelay=False, padding=False, seed=rs)
 
-    # print("Running RLR Utility..")
-    # run_rlr(utility_predict=True, rand_seed=rs)
+    print("Running RLR Utility..")
+    run_rlr(utility_predict=True, rand_seed=rs)
     # print("Running RF Utility..")
     # run_rf(utility_predict=True, rand_seed=rs)
-    # print("Running XGB Utility..")
-    # run_xgb(utility_predict=True, rand_seed=rs)
+    print("Running XGB Utility..")
+    run_xgb(utility_predict=True, rand_seed=rs)
 
 
 
