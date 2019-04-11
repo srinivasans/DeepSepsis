@@ -58,7 +58,6 @@ def utility_train_predict(model, model_type, data, window_size, impute_method, s
 
             x_i = np.reshape(window_data, (window_size*window_data.shape[1],))
             X_sw.append(x_i)
-            # y_sw.append(y_test[i][window_start])
 
             window_start += 1
         
@@ -119,27 +118,29 @@ def save_results(res, path):
 
 # Regularized Logistic Regression
 from sklearn.linear_model import LogisticRegression, LogisticRegressionCV
-def run_rlr():
-    lr_model = LogisticRegressionCV(cv=5, solver='lbfgs', max_iter=1000, class_weight='balanced', verbose=1, n_jobs=-1)
-    rlr_mean_res = train_predict(lr_model, 'RLR', datasets_mean, 'mean')
-    rlr_forw_res = train_predict(lr_model, 'RLR', datasets_forw, 'forw')
-    save_results(rlr_mean_res, 'baselines/RLR_mean')
-    save_results(rlr_forw_res, 'baselines/RLR_forw')
+def run_rlr(utility_predict=False, rand_seed=None):
+    rlr_model = LogisticRegression(C=0.001, solver='lbfgs', max_iter=1000, class_weight='balanced')
+    if not utility_predict:
+        rlr_mean_res = train_predict(rlr_model, 'RLR', datasets_mean, 'mean')
+        rlr_forw_res = train_predict(rlr_model, 'RLR', datasets_forw, 'forw')
+        save_results(rlr_mean_res, 'baselines/RLR_mean')
+        save_results(rlr_forw_res, 'baselines/RLR_forw')
+    else:
+        utility_train_predict(rlr_model, 'RLR', datasets_forw, 5, 'forw', rand_seed)
+        utility_train_predict(rlr_model, 'RLR', datasets_mean, 4, 'mean', rand_seed)
 
 # Random Forest 
 from sklearn.ensemble import RandomForestClassifier
-def run_rf(utility_predict=False):
-    rf_model = RandomForestClassifier(n_estimators=25, max_depth=5, class_weight='balanced', n_jobs=-1)
+def run_rf(utility_predict=False, rand_seed=None):
+    rf_model = RandomForestClassifier(n_estimators=40, max_depth=5, class_weight='balanced', n_jobs=-1)
     if not utility_predict:
         rf_mean_res = train_predict(rf_model, 'RF', datasets_mean, 'mean')
         rf_forw_res = train_predict(rf_model, 'RF', datasets_forw, 'forw')
         save_results(rf_mean_res, 'baselines/RF_mean')
         save_results(rf_forw_res, 'baselines/RF_forw')
     else:
-        for rs in random_seeds:
-            print("Running utility predictions for RF with ws=%d, imp=%s, seed=%d"%(5, 'mean', rs))
-            data = dataset.Dataset('../sepsis_data/all_data', train_ratio=0.8, maxLength=336, padding=False, calculateDelay=False, seed=rs)
-            utility_train_predict(rf_model, 'RF', data, 5, 'mean', rs)
+        utility_train_predict(rf_model, 'RF', datasets_forw, 5, 'forw', rand_seed)
+        utility_train_predict(rf_model, 'RF', datasets_mean, 6, 'mean', rand_seed)
 
 # XGBoost
 import xgboost as xgb
@@ -154,10 +155,6 @@ def train_predict_xgb(model, data, impute_method):
         # Get Data
         X_train, y_train = createSWData(data.train_data.x, data.train_data.y, ws)
         X_val, y_val = createSWData(data.val_data.x, data.val_data.y, ws)
-        # X_test, y_test = createSWData(data.test_data.x, data.test_data.y, ws)
-        dtrain = xgb.DMatrix(X_train, label=y_train)
-        dval = xgb.DMatrix(X_val, label=y_val)
-        dtest = xgb.DMatrix(X_test, label=y_test)
 
         # Train model
         # evallist = evallist = [(dtrain, 'train'), (dval, 'eval')]
@@ -179,18 +176,23 @@ def train_predict_xgb(model, data, impute_method):
             
     return np.array(results)
 
-def run_xgb():
-    xgb_model = XGBClassifier(n_estimators=25, max_depth=5, learning_rate=1, reg_lambda=1000, scale_pos_weight=55.6, n_jobs=-1)
-    xgb_mean_res = train_predict_xgb(xgb_model, datasets_mean, 'mean')
-    xgb_forw_res = train_predict_xgb(xgb_model, datasets_forw, 'forw')
-    save_results(xgb_mean_res, 'baselines/XG_mean')
-    save_results(xgb_forw_res, 'baselines/XG_forw')
+def run_xgb(utility_predict=False, rand_seed=None):
+    xgb_model = XGBClassifier(n_estimators=75, max_depth=3, learning_rate=0.5, scale_pos_weight=55.6, n_jobs=-1)
+    if not utility_predict:
+        xgb_mean_res = train_predict_xgb(xgb_model, datasets_mean, 'mean')
+        xgb_forw_res = train_predict_xgb(xgb_model, datasets_forw, 'forw')
+        save_results(xgb_mean_res, 'baselines/XG_mean')
+        save_results(xgb_forw_res, 'baselines/XG_forw')
+    else:
+        utility_train_predict(xgb_model, 'XG', datasets_mean, 6, 'mean', rand_seed)
+        utility_train_predict(xgb_model, 'XG', datasets_forw, 5, 'forw', rand_seed)
+
 
 # AdaBoost
 # THIS NEEDS TO BE Tuned ... 
 from sklearn.ensemble import GradientBoostingClassifier
-def run_adb():
-    ab_model = GradientBoostingClassifier(n_estimators=25, loss='exponential')
+def run_adb(utility_predict=False):
+    ab_model = GradientBoostingClassifier(n_estimators=30, loss='exponential', max_depth=3, learning_rate=0.5)
     ab_mean_res = train_predict(ab_model, 'AB', datasets_mean, 'mean')
     ab_forw_res = train_predict(ab_model, 'AB', datasets_forw, 'forw')
     save_results(ab_mean_res, 'baselines/AB_mean')
@@ -198,7 +200,7 @@ def run_adb():
 
 # SVM
 from sklearn.svm import SVC
-def run_svm():
+def run_svm(utility_predict=False):
     svm_model = SVC(C=0.001, gamma='auto', class_weight='balanced', probability=True)
     svm_mean_res = train_predict(svm_model, "SVM", datasets_mean, 'mean')
     svm_forw_res = train_predict(svm_model, "SVM", datasets_forw, 'forw')
@@ -217,11 +219,11 @@ def run_nn(data, ws, imp):
 
     nn_model = Sequential()
     nn_model.add(Dense(432, activation='relu', input_dim=ws*36))
-    nn_model.add(Dropout(rate=0.5))
+    # nn_model.add(Dropout(rate=0.5))
     nn_model.add(Dense(216, activation='relu'))
-    nn_model.add(Dropout(rate=0.5))
+    # nn_model.add(Dropout(rate=0.5))
     nn_model.add(Dense(108, activation='relu'))
-    nn_model.add(Dropout(rate=0.5))
+    # nn_model.add(Dropout(rate=0.5))
     nn_model.add(Dense(1, activation='sigmoid'))
     nn_model.compile(optimizer='Adam', loss='binary_crossentropy')
 
@@ -230,7 +232,7 @@ def run_nn(data, ws, imp):
 
     cw = class_weight.compute_class_weight('balanced', np.unique(y_train), y_train)
     early_stop = EarlyStopping(patience=5)
-    nn_model.fit(X_train, y_train, epochs=100, verbose=0, validation_data=(X_val, y_val), 
+    nn_model.fit(X_train, y_train, epochs=100, verbose=1, validation_data=(X_val, y_val), 
                     class_weight=cw, callbacks=[early_stop])
     
     X_test, y_test = createSWData(data.test_data.x, data.test_data.y, ws)
@@ -245,22 +247,34 @@ def run_nn(data, ws, imp):
 # Get Data and Run Models 
 random_seeds = [1, 21, 23, 30]
 impute_methods = ['mean', 'forward', 'DAE', 'kNN', "GRU-D"]
-datasets_mean = dataset.Dataset('../sepsis_data/all_data', train_ratio=0.8, maxLength=336, padding=False, calculateDelay=False)
-datasets_forw = dataset.Dataset('../sepsis_data/all_data', train_ratio=0.8, maxLength=336, imputeForward=True, calculateDelay=False, padding=False)
+# datasets_mean = dataset.Dataset('../data', train_ratio=0.8, maxLength=336, padding=False, calculateDelay=False)
+# datasets_forw = dataset.Dataset('../data', train_ratio=0.8, maxLength=336, imputeForward=True, calculateDelay=False, padding=False)
 
-print("Running RLR..")
-run_rlr(utility_predict=False)
-print("Running RF..")
-run_rf(utility_predict=False)
+# print("Running RLR..")
+# run_rlr()
+# print("Running RF..")
+# run_rf()
+# print("Running XGB..")
+# run_xgb()
 # print("Running AB..")
-# run_adb(utility_predict=True)
-print("Running XGB..")
-run_xgb()
-print("Running SVM..")
-run_svm(utility_predict=False)
+# run_adb()
+# print("Running SVM..")
+# run_svm()
 # print("Running NN..")
 # run_nn(datasets_mean, 6, 'mean')
 # run_nn(datasets_forw, 6, 'forw')
+
+# Run utility predictions
+for rs in random_seeds:
+    datasets_mean = dataset.Dataset('../data', train_ratio=0.8, maxLength=336, padding=False, calculateDelay=False, seed=rs)
+    datasets_forw = dataset.Dataset('../data', train_ratio=0.8, maxLength=336, imputeForward=True, calculateDelay=False, padding=False, seed=rs)
+
+    # print("Running RLR Utility..")
+    # run_rlr(utility_predict=True, rand_seed=rs)
+    print("Running RF Utility..")
+    run_rf(utility_predict=True, rand_seed=rs)
+    # print("Running XGB Utility..")
+    # run_xgb(utility_predict=True, rand_seed=rs)
 
 
 
