@@ -29,6 +29,12 @@ def generate_plots(args):
 
 
 def plot_roc(model, model_path, plot_path):
+    plt.style.use('ggplot')
+    plt.figure(dpi=150)
+    plt.plot([0, 1], [0, 1], 'k--')
+
+    # colors = ['m', 'c', 'g', 'b']
+    count=0
 
     for imputation_method in os.listdir(model_path):
         imputation_dir = os.path.join(model_path, imputation_method)
@@ -37,8 +43,9 @@ def plot_roc(model, model_path, plot_path):
         tpr = load_column(os.path.join(imputation_dir, 'seed_1.roc'), 'TPR')
         auc = load_column(os.path.join(imputation_dir, 'seed_1.metrics'), 'AUROC')
 
+        # plt.plot(fpr, tpr, label='{} {}'.format(imputation_method, '{0:.3f}'.format(auc[0])), color=colors[count])
         plt.plot(fpr, tpr, label='{} {}'.format(imputation_method, '{0:.3f}'.format(auc[0])))
-
+        count += 1
     plt.legend()
     plt.title('{} Roc Curve'.format(model))
 
@@ -77,6 +84,8 @@ def plot_metric(metrics_path, models, metric, type, plot_path):
                 d[imputation_method]['means'].append(mean)
                 d[imputation_method]['stds'].append(std)
 
+    plt.style.use('ggplot')
+    plt.figure(dpi=150)
     N = len(models)
     fig, ax = plt.subplots()
     ind = np.arange(N)
@@ -84,14 +93,15 @@ def plot_metric(metrics_path, models, metric, type, plot_path):
     rects = []
     rects_0 = []
     count = 0
-    colors = ['r', 'b', 'g', 'p']
+    # colors = ['m', 'c', 'g', 'b']
     imputation_types = []
 
     for imputation in d:
         imputation_types.append(imputation)
         means = d[imputation]['means']
         stds = d[imputation]['stds']
-        rect = ax.bar(ind + count*width, means, width, color=colors[count], yerr=stds)
+        rect = ax.bar(ind + count * width, means, width, yerr=stds)
+        # rect = ax.bar(ind + count*width, means, width, color=colors[count], yerr=stds)
         rects.append(rect)
         rects_0.append(rect[0])
         count += 1
