@@ -23,6 +23,7 @@ class ImputerData(data.Data):
             x = self.x[cursor:cursor+self.batchSize]
             
             # Simulate missingness only during Training
+            mask = self.m[cursor:cursor+self.batchSize]
             if self.induceMissingness and epoch > self.minMaskEpoch:
                 mask = np.random.choice([0, 1], size=self.batchSize*self.x.shape[1]*self.x.shape[2], p=[self.missingRate, 1.0-self.missingRate])
                 mask = mask.reshape(x.shape)
@@ -32,7 +33,7 @@ class ImputerData(data.Data):
             labels = self.y[cursor:cursor+self.batchSize]
             y_mask = self.y_mask[cursor:cursor+self.batchSize]
             m = self.m[cursor:cursor+self.batchSize]
-            d = self.timeDelay[cursor:cursor+self.batchSize]
+            new_mask = self.m[cursor:cursor+self.batchSize]*mask
             xlen = self.x_lengths[cursor:cursor+self.batchSize]
             utp = self.UTP[cursor:cursor+self.batchSize]
             ufp = self.UFP[cursor:cursor+self.batchSize]
@@ -40,6 +41,6 @@ class ImputerData(data.Data):
             files = self.files[cursor:cursor+self.batchSize]
 
             cursor+=self.batchSize
-            yield x,y,m,d,xlen,y_mask,utp,ufp,ufn,files,labels
+            yield x,y,m,new_mask,xlen,y_mask,utp,ufp,ufn,files,labels
     
 

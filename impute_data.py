@@ -104,23 +104,24 @@ if __name__ == '__main__':
             model.build()
 
             # Train model - (Internally validate the model on test set)
-            #min_loss, best_epoch = model.train()
+            min_loss, best_epoch = model.train()
 
             # Reproducing validation results from best epoch            
-            #val_loss = model.test(val=True, test_epoch=best_epoch, load_checkpoint=True)
+            val_loss = model.test(val=True, test_epoch=best_epoch, load_checkpoint=True)
             #assert val_loss == pytest.approx(min_loss)
             
             # Test model and generate results for test data
             test_loss = model.test(val=False, test_epoch=30, generate_files=True, load_checkpoint=True)
 
-            model.test_data = dataset.train_data
-            test_loss = model.test(val=False, test_epoch=30, generate_files=True, load_checkpoint=True)
+            #model.test_data = dataset.train_data
+            #test_loss = model.test(val=False, test_epoch=30, generate_files=True, load_checkpoint=True)
 
-            model.test_data = dataset.val_data
-            test_loss = model.test(val=False, test_epoch=30, generate_files=True, load_checkpoint=True)
+            #model.test_data = dataset.val_data
+            #test_loss = model.test(val=False, test_epoch=30, generate_files=True, load_checkpoint=True)
 
-        #print("min mse is: " + str(min_loss))
+        # print("min mse is: " + str(min_loss))
         # result_file = open(os.path.join(args.result_path, args.experiment, args.imputation_method, ('_').join(['seed',str(args.seed)]), 'result.mse'),"w")
         # result_file.write("val mse: {}".format(min_mse))
         # result_file.write("\ntest mse: {}".format(min_mse))
         # result_file.close()
+        print(test_loss)
