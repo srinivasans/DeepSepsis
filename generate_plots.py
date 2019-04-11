@@ -6,8 +6,16 @@ import numpy as np
 
 
 RNN_MODELS = ['LSTM', 'LSTMM', 'LSTMSimple', 'GRU', 'GRUM', 'GRUD']
+NON_RNN_MODELS = ['COX', 'RF', 'XG', 'RLR']
 METRICS = ['Utility', 'Sensitivity', 'Specificity']
 
+
+MODEL_NAME_MAPPTING = {'COX': 'Cox PH', 'RF': 'RF', 'XG': 'XGBoost', 'RLR': 'RLR',
+                       'LSTMSimple': 'LSTM-MD', 'LSTM': 'LSTM', 'LSTMM': 'LSTM-M',
+                       'GRU': 'GRU', 'GRUM': 'GRU-M', 'GRUD': 'GRU-Decay'}
+
+RNN_IMPUTATION = ['mean', 'forward', 'grud', 'dae']
+NON_RNN_IMPUTATION = ['mean', 'forward']
 
 def generate_plots(args):
     rnn = []
@@ -15,10 +23,13 @@ def generate_plots(args):
 
     for model in os.listdir(args.metrics_path):
         model_path = os.path.join(args.metrics_path, model)
-        plot_roc(model, model_path, args.plot_path)
+        if model in RNN_MODELS:
+            plot_roc(model, model_path, args.plot_path, 'RNN')
+        else:
+            plot_roc(model, model_path, args.plot_path, 'Non-RNN')
         if model in RNN_MODELS:
             rnn.append(model)
-        else:
+        elif model in NON_RNN_MODELS:
             non_rnn.append(model)
 
     for metric in METRICS:
@@ -28,15 +39,22 @@ def generate_plots(args):
             plot_metric(args.metrics_path, non_rnn, metric, 'Non-RNN', args.plot_path)
 
 
-def plot_roc(model, model_path, plot_path):
+def plot_roc(model, model_path, plot_path, type):
     plt.style.use('ggplot')
-    plt.figure(dpi=150)
+    plt.figure(figsize=[4, 4], dpi=150)
     plt.plot([0, 1], [0, 1], 'k--')
+
+    print("Metric: AUC")
 
     # colors = ['m', 'c', 'g', 'b']
     count=0
 
-    for imputation_method in os.listdir(model_path):
+    if type == 'RNN':
+        imputation_lst = RNN_IMPUTATION
+    else:
+        imputation_lst = NON_RNN_IMPUTATION
+
+    for imputation_method in imputation_lst:
         imputation_dir = os.path.join(model_path, imputation_method)
 
         fpr = load_column(os.path.join(imputation_dir, 'seed_1.roc'), 'FPR')
@@ -44,15 +62,25 @@ def plot_roc(model, model_path, plot_path):
         auc = load_column(os.path.join(imputation_dir, 'seed_1.metrics'), 'AUROC')
 
         # plt.plot(fpr, tpr, label='{} {}'.format(imputation_method, '{0:.3f}'.format(auc[0])), color=colors[count])
-        plt.plot(fpr, tpr, label='{} {}'.format(imputation_method, '{0:.3f}'.format(auc[0])))
+        plt.plot(fpr, tpr, label='{} {}'.format(imputation_method, '{0:.3f}'.format(auc[0])), alpha=0.7)
+        aucs = []
+        for seed in os.listdir(imputation_dir):
+            if seed.endswith('.metrics'):
+                aucs.append(load_column(os.path.join(imputation_dir, seed), 'AUROC'))
+        auc_mean = np.mean(aucs)
+        auc_std = np.std(aucs)
+
+        print('Model: {} Imputation Type: {} Avg: {} Std: {}'.format(model, imputation_method, auc_mean, auc_std))
         count += 1
     plt.legend()
-    plt.title('{} Roc Curve'.format(model))
+    plt.title('{} ROC Curve'.format(MODEL_NAME_MAPPTING[model]))
 
     roc_dir = '{}/roc'.format(plot_path)
 
     if not os.path.exists(roc_dir):
         os.makedirs(roc_dir)
+
+    plt.show()
 
     plt.savefig('{}/{}.png'.format(roc_dir, model))
 
@@ -60,11 +88,22 @@ def plot_roc(model, model_path, plot_path):
 
 
 def plot_metric(metrics_path, models, metric, type, plot_path):
+
+    print("Metric: {}".format(metric))
+
+    model_names = []
     d = {}
+
+    if type == 'RNN':
+        imputation_lst = RNN_IMPUTATION
+    else:
+        imputation_lst = NON_RNN_IMPUTATION
+
     for model in os.listdir(metrics_path):
         if model in models:
             model_dir = os.path.join(metrics_path, model)
-            for imputation_method in os.listdir(model_dir):
+            model_names.append(MODEL_NAME_MAPPTING[model])
+            for imputation_method in imputation_lst:
                 if imputation_method not in d:
                     d[imputation_method] = {}
                 imputation_dir = os.path.join(model_dir, imputation_method)
@@ -81,23 +120,28 @@ def plot_metric(metrics_path, models, metric, type, plot_path):
                 mean = np.mean(all_seed_metrics)
                 std = np.std(all_seed_metrics)
 
+
                 d[imputation_method]['means'].append(mean)
                 d[imputation_method]['stds'].append(std)
 
+
+                print('Model: {} Imputation Type: {} Avg: {} Std: {}'.format(model, imputation_method, mean, std))
+
     plt.style.use('ggplot')
+
+
     plt.figure(dpi=150)
     N = len(models)
     fig, ax = plt.subplots()
     ind = np.arange(N)
-    width = 0.35
+    width = 0.2
     rects = []
     rects_0 = []
     count = 0
     # colors = ['m', 'c', 'g', 'b']
     imputation_types = []
 
-    for imputation in d:
-        imputation_types.append(imputation)
+    for imputation in imputation_lst:
         means = d[imputation]['means']
         stds = d[imputation]['stds']
         rect = ax.bar(ind + count * width, means, width, yerr=stds)
@@ -106,16 +150,24 @@ def plot_metric(metrics_path, models, metric, type, plot_path):
         rects_0.append(rect[0])
         count += 1
 
+    if type == 'RNN':
+        factor = 1.5
+    else:
+        factor = 0.5
+
     ax.set_ylabel(metric)
     ax.set_title('{} Methods - {}'.format(type, metric))
-    ax.set_xticks(ind + width/2)
-    ax.set_xticklabels(models)
-    ax.legend(rects_0, imputation_types)
+    ax.set_xticks(ind + factor*width)
+    ax.set_xticklabels(model_names)
+    ax.legend(rects_0, imputation_lst)
 
     metric_dir = '{}/metrics'.format(plot_path)
 
     if not os.path.exists(metric_dir):
         os.makedirs(metric_dir)
+
+    plt.ylim(0, 1)
+    plt.show()
 
     plt.savefig('{}/{}-{}.png'.format(metric_dir, type, metric))
 
