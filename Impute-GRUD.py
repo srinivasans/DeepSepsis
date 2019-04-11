@@ -68,7 +68,7 @@ def auroc(y_true, y_pred):
 #%%
 model_dirs = os.listdir("saved_models")
 print(f"Available models = {model_dirs}")
-path = os.path.join("saved_models", model_dirs[4], "model.h5")
+path = os.path.join("saved_models", model_dirs[0], "model.h5")
 print(f"Using model {path}")
 
 

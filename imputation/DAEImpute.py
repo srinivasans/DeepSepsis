@@ -248,7 +248,7 @@ class DAE():
 
         squared_error = 0.0
         num_samples = 0
-        for test_x,test_y,test_m,test_delta,test_xlen,y_mask,utp,ufp,ufn,files,test_labels  in dataset.getNextBatch():
+        for test_x,test_y,test_m,test_delta,test_xlen,y_mask,utp,ufp,ufn,files,test_labels  in dataset.getNextBatch(epoch=30):
             summary_str,pred,val_loss = self.sess.run([self.sum, self.output, self.loss], feed_dict={
                 self.x: test_x,
                 self.y: test_y,
@@ -264,8 +264,9 @@ class DAE():
                 self.isTrain:False
             })
             # Remove padding for accuracy and AUC calculation
+            pred = (pred*(1.0-test_delta))+(test_y*test_delta)
             squared_error+= np.sum(((pred-test_y)*test_m*y_mask)**2)
-            num_samples+=np.sum(test_m)
+            num_samples+=np.sum(test_m) - np.sum(test_delta)
 
             # Reset the non-missing values to actual known values 
             pred = (pred*(1.0-test_m))+(test_y*test_m)
