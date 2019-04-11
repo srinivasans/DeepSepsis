@@ -99,7 +99,7 @@ def remove_padding(y_true, y_pred, data):
     predictions_ind = []
     files = []
 
-    for i in range(len(data.x_lengths)):
+    for i in range(y_pred.shape[0]):
         targets.extend(list(y_true[i, 0:data.x_lengths[i]]))
         predictions.extend(list(y_pred[i, 0:data.x_lengths[i]]))
         predictions_ind.append(list(y_pred[i, 0:data.x_lengths[i]]))
