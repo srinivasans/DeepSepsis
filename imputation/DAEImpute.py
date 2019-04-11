@@ -4,7 +4,6 @@ Author: Srinivasan Sivanandan
 import sys
 sys.path.append("..")
 import tensorflow as tf
-from RNNCell import GRUDCell
 from tensorflow.python.ops import math_ops
 from tensorflow.python.ops import nn_ops
 import time
@@ -122,7 +121,7 @@ class DAE():
         self.pred = self.RNN(self.x, self.m, self.delta, self.mean, self.x_lengths)
         self.output = self.pred
         
-        self.loss = tf.reduce_mean(tf.squared_difference(self.pred*self.m,self.y*self.m))
+        self.loss = tf.reduce_sum(tf.squared_difference(self.pred*self.m,self.y*self.m))/tf.reduce_sum(self.m)
         self.train_op = tf.train.AdamOptimizer(self.lr).minimize(self.loss)
  
         self.saver = tf.train.Saver(max_to_keep=None)
@@ -246,6 +245,9 @@ class DAE():
             self.load_model(test_epoch, checkpoint_dir)
 
         tf.local_variables_initializer().run()
+
+        squared_error = 0.0
+        num_samples = 0
         for test_x,test_y,test_m,test_delta,test_xlen,y_mask,utp,ufp,ufn,files,test_labels  in dataset.getNextBatch():
             summary_str,pred,val_loss = self.sess.run([self.sum, self.output, self.loss], feed_dict={
                 self.x: test_x,
@@ -262,16 +264,22 @@ class DAE():
                 self.isTrain:False
             })
             # Remove padding for accuracy and AUC calculation
+            squared_error+= np.sum(((pred-test_y)*test_m*y_mask)**2)
+            num_samples+=np.sum(test_m)
+
+            # Reset the non-missing values to actual known values 
+            pred = (pred*(1.0-test_m))+(test_y*test_m)
             for i in range(0,test_xlen.shape[0]):
-                pred = (pred*(1.0-test_m))+(test_y*test_m)
                 outputs = pred[i, 0:test_xlen[i]]*dataset.std+dataset.mean
                 predictions_ind.append(list(outputs))
                 labels_ind.append(list(test_labels[i, 0:test_xlen[i]]))
                 test_files.append(files[i])
-            
+
+                
             if generate_files:
                 self.save_output(predictions_ind,labels_ind,test_files)
-        
-        return val_loss
+
+            mse = squared_error/num_samples
+        return mse
 
     

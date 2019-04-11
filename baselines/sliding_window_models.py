@@ -118,8 +118,8 @@ def run_rlr(utility_predict=False, rand_seed=None):
         save_results(rlr_mean_res, 'baselines/RLR_mean')
         save_results(rlr_forw_res, 'baselines/RLR_forw')
     else:
-        utility_train_predict(rlr_model, 'RLR', datasets_forw, 5, 'forw', rand_seed)
-        utility_train_predict(rlr_model, 'RLR', datasets_mean, 4, 'mean', rand_seed)
+        utility_train_predict(rlr_model, 'RLR', datasets_forw, 6, 'forw', rand_seed)
+        utility_train_predict(rlr_model, 'RLR', datasets_mean, 6, 'mean', rand_seed)
 
 # Random Forest 
 from sklearn.ensemble import RandomForestClassifier
@@ -176,19 +176,10 @@ def run_xgb(utility_predict=False, rand_seed=None):
         save_results(xgb_mean_res, 'baselines/XG_mean')
         save_results(xgb_forw_res, 'baselines/XG_forw')
     else:
+        print("Predicting for mean imputed data..")
         utility_train_predict(xgb_model, 'XG', datasets_mean, 6, 'mean', rand_seed)
+        print("Predicting for forw imputed data..")
         utility_train_predict(xgb_model, 'XG', datasets_forw, 5, 'forw', rand_seed)
-
-
-# AdaBoost
-# THIS NEEDS TO BE Tuned ... 
-from sklearn.ensemble import GradientBoostingClassifier
-def run_adb(utility_predict=False):
-    ab_model = GradientBoostingClassifier(n_estimators=30, loss='exponential', max_depth=3, learning_rate=0.5)
-    ab_mean_res = train_predict(ab_model, 'AB', datasets_mean, 'mean')
-    ab_forw_res = train_predict(ab_model, 'AB', datasets_forw, 'forw')
-    save_results(ab_mean_res, 'baselines/AB_mean')
-    save_results(ab_forw_res, 'baselines/AB_forw')
 
 # SVM
 from sklearn.svm import SVC
@@ -200,13 +191,13 @@ def run_svm(utility_predict=False):
     save_results(svm_forw_res, 'baselines/SVM_forw')
 
 # Neural Network
-import keras
-from keras.models import Sequential 
-from keras.layers import Dense, Dropout
-from keras.callbacks import EarlyStopping
-from sklearn.utils import class_weight
+# import keras
+# from keras.models import Sequential 
+# from keras.layers import Dense, Dropout
+# from keras.callbacks import EarlyStopping
+# from sklearn.utils import class_weight
 
-def run_nn(data, ws, imp):
+# def run_nn(data, ws, imp):
     res = [ws, imp]
 
     nn_model = Sequential()
@@ -248,8 +239,6 @@ impute_methods = ['mean', 'forward', 'DAE', 'kNN', "GRU-D"]
 # run_rf()
 # print("Running XGB..")
 # run_xgb()
-# print("Running AB..")
-# run_adb()
 # print("Running SVM..")
 # run_svm()
 # print("Running NN..")
@@ -261,12 +250,12 @@ for rs in random_seeds:
     datasets_mean = dataset.Dataset('../sepsis_data/all_data', train_ratio=0.8, maxLength=336, padding=False, calculateDelay=False, seed=rs)
     datasets_forw = dataset.Dataset('../sepsis_data/all_data', train_ratio=0.8, maxLength=336, imputeForward=True, calculateDelay=False, padding=False, seed=rs)
 
-    print("Running RLR Utility..")
-    run_rlr(utility_predict=True, rand_seed=rs)
+    # print("Running RLR Utility..")
+    # run_rlr(utility_predict=True, rand_seed=rs)
     # print("Running RF Utility..")
     # run_rf(utility_predict=True, rand_seed=rs)
-    # print("Running XGB Utility..")
-    # run_xgb(utility_predict=True, rand_seed=rs)
+    print("Running XGB Utility..")
+    run_xgb(utility_predict=True, rand_seed=rs)
 
 
 

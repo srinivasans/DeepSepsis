@@ -51,7 +51,7 @@ def compute_scores_2019(label_directory, prediction_directory):
 
     # Find label and prediction files.
     label_files = []
-    for filename in os.listdir(label_directory):
+    for filename in os.listdir(prediction_directory):
         full_filename = os.path.join(label_directory, filename)
         if os.path.isfile(full_filename) and full_filename.endswith('.psv'):
             label_files.append(filename)
@@ -66,7 +66,7 @@ def compute_scores_2019(label_directory, prediction_directory):
 
     # Added by Sneha
     ### HACK!!!!! BECAUSE FRAMEWORK ONLY PREDICTS ON 4000 BUT THERE ARE 4033 IN THE TEST SET!!
-    label_files = prediction_files
+    #label_files = prediction_files
 
     if len(label_files) != len(prediction_files):
         raise Exception('Numbers of labels and predictions must be the same.')
@@ -383,9 +383,9 @@ def compute_accuracy_f_measure(labels, predictions):
         if labels[i] and predictions[i]:
             tp += 1
         elif labels[i] and not predictions[i]:
-            fp += 1
-        elif not labels[i] and predictions[i]:
             fn += 1
+        elif not labels[i] and predictions[i]:
+            fp += 1
         elif not labels[i] and not predictions[i]:
             tn += 1
 

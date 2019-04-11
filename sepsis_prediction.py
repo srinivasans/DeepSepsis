@@ -56,6 +56,7 @@ if __name__ == '__main__':
     parser.add_argument('--impute-forward', type=int, default=0)
     parser.add_argument('--calculate-delay', type=int, default=1)
     parser.add_argument('--imputation-method', type=str, default='mean')
+    parser.add_argument('--imputation-folder', type=str, default=None)
     parser.add_argument('--early-stopping-patience', type=int, default=5)
     parser.add_argument('--seed', type=int, default=42)
 
@@ -103,7 +104,8 @@ if __name__ == '__main__':
                             maxLength=336,
                             imputeForward=args.impute_forward,
                             calculateDelay=args.calculate_delay,
-                            seed=args.seed)
+                            seed=args.seed,
+                            imputation_folder=args.imputation_folder)
 
     lrs=[0.001]
     for lr in lrs:
@@ -158,8 +160,8 @@ if __name__ == '__main__':
             # Reproducing validation results from best epoch
             val_acc, val_auc, val_loss, val_tp, val_fp, val_tn, val_fn, val_counter = model.test(val=True, test_epoch=best_epoch, load_checkpoint=True)
             print(val_auc)
-            # assert val_auc == pytest.approx(max_auc)
-
+            #assert val_auc == pytest.approx(max_auc)
+            
             # Test model and generate results for test data
             test_acc, test_auc, test_tp, test_fp, test_tn, test_fn, test_sens, test_spec = model.test(val=False, test_epoch=best_epoch, generate_files=True, load_checkpoint=True)
 

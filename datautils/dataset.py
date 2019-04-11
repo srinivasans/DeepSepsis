@@ -8,7 +8,7 @@ from .data import Data
 
 class Dataset():
 
-    def __init__(self, path, batchSize = 100, train_ratio=0.8, normalize=True, padding=True, maxLength=336, imputeForward=False, calculateDelay=True, seed=42):
+    def __init__(self, path, batchSize = 100, train_ratio=0.8, normalize=True, padding=True, maxLength=336, imputeForward=False, calculateDelay=True, seed=42, imputation_folder=None):
         self.path = path
         self.batchSize = batchSize
         self.normalize = normalize
@@ -51,7 +51,8 @@ class Dataset():
                                 std = None,
                                 maxLength=maxLength,
                                 imputeForward=imputeForward,
-                                calculateDelay=calculateDelay)
+                                calculateDelay=calculateDelay,
+                                imputation_folder=imputation_folder)
 
         print("Processing val data...")
         self.val_data = Data(path,
@@ -64,7 +65,8 @@ class Dataset():
                                 std=self.train_data.std,
                                 maxLength=self.train_data.maxLength,
                                 imputeForward=imputeForward,
-                                calculateDelay=calculateDelay)
+                                calculateDelay=calculateDelay,
+                                imputation_folder=imputation_folder)
 
         print("Processing test data...")
         self.test_data = Data(path,
@@ -77,7 +79,8 @@ class Dataset():
                                 std=self.train_data.std,
                                 maxLength=self.train_data.maxLength,
                                 imputeForward=imputeForward,
-                                calculateDelay=calculateDelay)
+                                calculateDelay=calculateDelay,
+                                imputation_folder=imputation_folder)
 
 
 
