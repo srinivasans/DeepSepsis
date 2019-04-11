@@ -32,11 +32,7 @@ def createSWData(X, y, window_size):
 
 def utility_train_predict(model, model_type, data, window_size, impute_method, seed):
     # Train model 
-    if model_type == 'RLR':
-        X_train, y_train = createSWData(np.abs(data.train_data.x), data.train_data.y, window_size)
-    else:
-        X_train, y_train = createSWData(data.train_data.x, data.train_data.y, window_size)
-
+    X_train, y_train = createSWData(data.train_data.x, data.train_data.y, window_size)
     model = model.fit(X_train, y_train)
 
     # Create test files for utility scores
@@ -85,11 +81,7 @@ def train_predict(model, model_label, data, impute_method):
         res = [ws, impute_method]
         print("Working on ws: %d, imp: %s"%(ws,impute_method))
 
-        if model_label == 'RLR':
-            X_train, y_train = createSWData(np.abs(data.train_data.x), data.train_data.y, ws)
-        else:
-            X_train, y_train = createSWData(data.train_data.x, data.train_data.y, ws)
-
+        X_train, y_train = createSWData(data.train_data.x, data.train_data.y, ws)
         trained_model = model.fit(X_train, y_train)
 
         res.append(trained_model.score(X_train, y_train))
@@ -247,8 +239,8 @@ def run_nn(data, ws, imp):
 # Get Data and Run Models 
 random_seeds = [1, 21, 23, 30]
 impute_methods = ['mean', 'forward', 'DAE', 'kNN', "GRU-D"]
-# datasets_mean = dataset.Dataset('../data', train_ratio=0.8, maxLength=336, padding=False, calculateDelay=False)
-# datasets_forw = dataset.Dataset('../data', train_ratio=0.8, maxLength=336, imputeForward=True, calculateDelay=False, padding=False)
+# datasets_mean = dataset.Dataset('../sepsis_data/all_data', train_ratio=0.8, maxLength=336, padding=False, calculateDelay=False)
+# datasets_forw = dataset.Dataset('../sepsis_data/all_data', train_ratio=0.8, maxLength=336, imputeForward=True, calculateDelay=False, padding=False)
 
 # print("Running RLR..")
 # run_rlr()
@@ -266,13 +258,13 @@ impute_methods = ['mean', 'forward', 'DAE', 'kNN', "GRU-D"]
 
 # Run utility predictions
 for rs in random_seeds:
-    datasets_mean = dataset.Dataset('../data', train_ratio=0.8, maxLength=336, padding=False, calculateDelay=False, seed=rs)
-    datasets_forw = dataset.Dataset('../data', train_ratio=0.8, maxLength=336, imputeForward=True, calculateDelay=False, padding=False, seed=rs)
+    datasets_mean = dataset.Dataset('../sepsis_data/all_data', train_ratio=0.8, maxLength=336, padding=False, calculateDelay=False, seed=rs)
+    datasets_forw = dataset.Dataset('../sepsis_data/all_data', train_ratio=0.8, maxLength=336, imputeForward=True, calculateDelay=False, padding=False, seed=rs)
 
-    # print("Running RLR Utility..")
-    # run_rlr(utility_predict=True, rand_seed=rs)
-    print("Running RF Utility..")
-    run_rf(utility_predict=True, rand_seed=rs)
+    print("Running RLR Utility..")
+    run_rlr(utility_predict=True, rand_seed=rs)
+    # print("Running RF Utility..")
+    # run_rf(utility_predict=True, rand_seed=rs)
     # print("Running XGB Utility..")
     # run_xgb(utility_predict=True, rand_seed=rs)
 
