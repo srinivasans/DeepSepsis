@@ -1,7 +1,7 @@
 Best Results from Models:
 RLR: 
 RF: 40 estimators, 5 depth, 5/6 forw
-XG: 
+XG: 75 est, depth 3, 5/6 forw/mean
 SVM: 
 NN: 
 AB: 
