@@ -33,16 +33,18 @@ if K.backend() == 'tensorflow':
 arg_parser = argparse.ArgumentParser()
 
 arg_parser.add_argument('--data', default="small_challenge_data")
+arg_parser.add_argument('--induce_missingness', default="false")
+arg_parser.add_argument('--missing_rate', type=float, default=0.4)
 arg_parser.add_argument('--generate_files', default="false")
 
 ARGS = arg_parser.parse_args()
-
+print('Arguments:', ARGS)
 
 #%%
 dataset = Dataset(os.path.join("data",ARGS.data),
                     batchSize=100,
                     train_ratio=0.8,
-                    normalize=False,
+                    normalize=(True if ARGS.induce_missingness == "true" else False),
                     padding=False,
                     imputeForward=False,
                     calculateDelay=True,
@@ -101,12 +103,23 @@ def impute(dt: Data, mean):
     mse = 0.0
     mse_count = 0.0
 
+    mse_mean = 0.0
+
     print('-'*20)
     print("* Imputing data...")
     for i in tqdm(range(dt.x.shape[0])):
         X = dt.x[i]
         M = dt.m[i]
-        M_induced = M * 0
+        if ARGS.induce_missingness == "true":
+            M_induced = np.random.choice([0, 1], size=X.shape[0]*X.shape[1], p=[ARGS.missing_rate, 1.0-ARGS.missing_rate])
+            M_induced = M_induced.reshape(X.shape)
+            M_induced = M * M_induced
+            X_new = X * M_induced
+            M_current = M_induced
+        else:
+            X_new = X
+            M_induced = M * 0
+            M_current = M
         D = dt.timeDelay[i]
 
         X_imputed = np.zeros_like(X)
@@ -115,9 +128,9 @@ def impute(dt: Data, mean):
         x_t_last = mean
 
         for t in range(T):
-            x_t = X[t]
+            x_t = X_new[t]
             d = D[t]
-            m = M[t]
+            m = M_current[t]
             m_inv = 1 - m
 
             gamma_t = (input_decay_kernel * d) + input_decay_bias
@@ -132,10 +145,16 @@ def impute(dt: Data, mean):
         mse += (np.square(X - X_imputed) * M).sum()
         mse_count += (M.sum() - M_induced.sum())
 
+        if ARGS.induce_missingness == "true":
+            mse_mean += (np.square(X - X_new) * M).sum()
+
     x_imputed = np.array(x_imputed)
     mse = mse / mse_count
     print("* Imputation complete.")
-    print(f"Imputation MSE = {mse}")
+    print(f"GRUD Imputation MSE = {mse}")
+    if ARGS.induce_missingness == "true":
+        mse_mean = mse_mean / mse_count
+        print(f"Mean Imputation MSE = {mse_mean}")
     print('-'*20)
     
     return x_imputed
@@ -160,7 +179,10 @@ def save_output(imputed,labels,filenames):
 
 
 #%%
-mean = dataset.train_data.mean
+if ARGS.induce_missingness == "true":
+    mean = np.zeros_like(dataset.train_data.mean)
+else:
+    mean = dataset.train_data.mean
 print("Train:")
 train_imputed = impute(dataset.train_data, mean)
 print("Val:")
