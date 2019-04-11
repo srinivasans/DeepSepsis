@@ -126,13 +126,12 @@ def run_rlr(utility_predict=False, rand_seed=None):
         save_results(rlr_mean_res, 'baselines/RLR_mean')
         save_results(rlr_forw_res, 'baselines/RLR_forw')
     else:
-        for rs in random_seeds:
-            utility_train_predict(rlr_model, 'RLR', datasets_forw, 5, 'forw', rand_seed)
-            utility_train_predict(rlr_model, 'RLR', datasets_mean, 4, 'mean', rand_seed)
+        utility_train_predict(rlr_model, 'RLR', datasets_forw, 5, 'forw', rand_seed)
+        utility_train_predict(rlr_model, 'RLR', datasets_mean, 4, 'mean', rand_seed)
 
 # Random Forest 
 from sklearn.ensemble import RandomForestClassifier
-def run_rf(utility_predict=False, rand_seed=None)
+def run_rf(utility_predict=False, rand_seed=None):
     rf_model = RandomForestClassifier(n_estimators=25, max_depth=5, class_weight='balanced', n_jobs=-1)
     if not utility_predict:
         rf_mean_res = train_predict(rf_model, 'RF', datasets_mean, 'mean')
@@ -140,10 +139,9 @@ def run_rf(utility_predict=False, rand_seed=None)
         save_results(rf_mean_res, 'baselines/RF_mean')
         save_results(rf_forw_res, 'baselines/RF_forw')
     else:
-        for rs in random_seeds:
-            print("Running utility predictions for RF with ws=%d, imp=%s, seed=%d"%(5, 'mean', rs))
-            utility_train_predict(rf_model, 'RF', datasets_forw, 6, 'forw', rand_seed)
-            utility_train_predict(rf_model, 'RF', datasets_mean, 5, 'mean', rand_seed)
+        print("Running utility predictions for RF with ws=%d, imp=%s, seed=%d"%(5, 'mean', rs))
+        utility_train_predict(rf_model, 'RF', datasets_forw, 6, 'forw', rand_seed)
+        utility_train_predict(rf_model, 'RF', datasets_mean, 5, 'mean', rand_seed)
 
 # XGBoost
 import xgboost as xgb
@@ -187,9 +185,8 @@ def run_xgb(utility_predict=False, rand_seed=None):
         save_results(xgb_mean_res, 'baselines/XG_mean')
         save_results(xgb_forw_res, 'baselines/XG_forw')
     else:
-        for rs in random_seeds:
-            utility_train_predict(xgb_model, 'XG', dataset_mean, 6, 'mean', rand_seed)
-            utility_train_predict(xgb_model, 'XG', dataset_forw, 5, 'forw', rand_seed)
+        utility_train_predict(xgb_model, 'XG', dataset_mean, 6, 'mean', rand_seed)
+        utility_train_predict(xgb_model, 'XG', dataset_forw, 5, 'forw', rand_seed)
 
 
 # AdaBoost
