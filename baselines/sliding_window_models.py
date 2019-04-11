@@ -139,7 +139,6 @@ def run_rf(utility_predict=False, rand_seed=None):
         save_results(rf_mean_res, 'baselines/RF_mean')
         save_results(rf_forw_res, 'baselines/RF_forw')
     else:
-        print("Running utility predictions for RF with ws=%d, imp=%s, seed=%d"%(5, 'mean', rs))
         utility_train_predict(rf_model, 'RF', datasets_forw, 6, 'forw', rand_seed)
         utility_train_predict(rf_model, 'RF', datasets_mean, 5, 'mean', rand_seed)
 
@@ -271,11 +270,11 @@ for rs in random_seeds:
     datasets_forw = dataset.Dataset('../sepsis_data/all_data', train_ratio=0.8, maxLength=336, imputeForward=True, calculateDelay=False, padding=False, seed=rs)
 
     print("Running RLR Utility..")
-    run_rlr(utility_predict=True, rs)
+    run_rlr(utility_predict=True, rand_seed=rs)
     print("Running RF Utility..")
-    run_rf(utility_predict=True, rs)
+    run_rf(utility_predict=True, rand_seed=rs)
     print("Running XGB Utility..")
-    run_xgb(utility_predict=True, rs)
+    run_xgb(utility_predict=True, rand_seed=rs)
 
 
 
