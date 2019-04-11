@@ -279,7 +279,7 @@ class RNNModel():
             if generate_files:
                 self.save_output(predictions_ind,test_files)
 
-        auc=acc=predictions=tn=fp=fn=tp = 1.0
+        auc=acc=tn=fp=fn=tp = 1.0
         if evaluateMetrics:
             auc = metrics.roc_auc_score(np.array(target),np.array(predictions))
             predictions = np.array(np.array(predictions)>self.threshold).astype(int)
