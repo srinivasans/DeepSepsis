@@ -108,7 +108,7 @@ class Data():
 
             if self.imputationFolder is not None:
                 self.path = self.imputationFolder
-                x,y_,m_,t_,d_ = self.readFile(input_file)
+                x_,y,m,t,d = self.readFile(input_file)
                 self.path = self.imputationFolder
             
             self.x.append(x)
