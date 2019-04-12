@@ -26,7 +26,7 @@ print(f"Running Cox with imputation_mode = {ARGS.imputation_mode}, seed = {ARGS.
 print('Arguments:', ARGS)
 
 #%%
-dataset = Dataset("data/small_challenge_data",
+dataset = Dataset("data/challenge_data",
                     batchSize=100,
                     train_ratio=0.8,
                     normalize=True,
