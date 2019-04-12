@@ -2,24 +2,30 @@
 Test:
 GRUD Imputation MSE = 0.39636902380383415
 Mean Imputation MSE = 0.9139333089476911
+Forward Imputation MSE = 0.4049176567579755
 --------------------
 ***Missing Rate = 0.3
 Test:
 GRUD Imputation MSE = 0.439943537418563
 Mean Imputation MSE = 0.9304139217360496
+Forward Imputation MSE = 0.4498466213353667
 --------------------
 ***Missing Rate = 0.5
 Test:
 GRUD Imputation MSE = 0.4668968909136201
 Mean Imputation MSE = 0.9335927846332995
+Forward Imputation MSE = 0.47493316982662115
 --------------------
 ***Missing Rate = 0.7
 Test:
 GRUD Imputation MSE = 0.5329071044638316
 Mean Imputation MSE = 0.9240019685348604
+Forward Imputation MSE = 0.54341287696332
 --------------------
 ***Missing Rate = 0.9
 Test:
 GRUD Imputation MSE = 0.6831748111700572
 Mean Imputation MSE = 0.9272811866646319
+Forward Imputation MSE = 0.6938255045047723
 --------------------
+

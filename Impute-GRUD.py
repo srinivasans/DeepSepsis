@@ -104,6 +104,7 @@ def impute(dt: Data, mean):
     mse_count = 0.0
 
     mse_mean = 0.0
+    mse_forward = 0.0
 
     print('-'*20)
     print("* Imputing data...")
@@ -123,6 +124,7 @@ def impute(dt: Data, mean):
         D = dt.timeDelay[i]
 
         X_imputed = np.zeros_like(X)
+        X_forward_imputed = np.zeros_like(X)
         T = X.shape[0]
 
         x_t_last = mean
@@ -138,6 +140,8 @@ def impute(dt: Data, mean):
 
             X_imputed[t] = (m * x_t) + (m_inv * ((gamma_t * x_t_last) + ((1 - gamma_t) * mean)))
 
+            X_forward_imputed[t] = (m * x_t) + (m_inv * x_t_last)
+
             x_t_last = (m * x_t) + (m_inv * x_t_last)
 
         x_imputed.append(X_imputed)
@@ -147,6 +151,7 @@ def impute(dt: Data, mean):
 
         if ARGS.induce_missingness == "true":
             mse_mean += (np.square(X - X_new) * M).sum()
+            mse_forward += (np.square(X - X_forward_imputed) * M).sum()
 
     x_imputed = np.array(x_imputed)
     mse = mse / mse_count
@@ -155,6 +160,8 @@ def impute(dt: Data, mean):
     if ARGS.induce_missingness == "true":
         mse_mean = mse_mean / mse_count
         print(f"Mean Imputation MSE = {mse_mean}")
+        mse_forward = mse_forward / mse_count
+        print(f"Forward Imputation MSE = {mse_forward}")
     print('-'*20)
     
     return x_imputed
